@@ -4,8 +4,7 @@ namespace PersonalWebApi.Utilities;
 /// Interface for database worker operations.  
 /// Provides methods for executing SQL commands, transactions, and retrieving query results as lists of dictionaries.
 /// </summary>
-public interface IDBWorker
-{
+public interface IDBWorker {
     /// <summary>
     /// Executes a SQL command (such as INSERT, UPDATE, DELETE) synchronously with parameters.
     /// </summary>
