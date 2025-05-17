@@ -1,0 +1,64 @@
+# .gitignore for ASP.NET Core & C# projects
+
+# Build results
+bin/
+obj/
+out/
+[Bb]uild/
+[Ll]og/
+TestResults/
+.vs/
+*.user
+*.suo
+
+# Rider
+.idea/
+*.sln.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# User-specific files
+*.userprefs
+*.userosscache
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/
+.history/
+
+# NuGet
+*.nupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Publish
+wwwroot/dist/
+wwwroot/node_modules/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Others
+*.log
+*.tlog
+*.cache
+*.pdb
+*.mdb
+
+# Local secrets
+secrets.json
+appsettings.Development.json
+appsettings.Local.json

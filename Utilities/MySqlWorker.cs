@@ -1,0 +1,355 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using MySql.Data.MySqlClient;
+
+namespace PersonalWebApi.Utilities;
+
+/// <summary>
+/// Utility class for executing MySQL commands.
+/// </summary>
+public class MySqlWorker : IDBWorker
+{
+    private readonly string _connectionString;
+    private readonly ILogger<MySqlWorker> _logger;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MySqlWorker"/> class.
+    /// </summary>
+    /// <param name="configuration">The application configuration containing the MySQL connection string.</param>
+    /// <param name="logger">The logger instance for logging SQL execution details.</param>
+    public MySqlWorker(IConfiguration configuration, ILogger<MySqlWorker> logger)
+    {
+        _connectionString = configuration.GetConnectionString("MySql")
+            ?? throw new InvalidOperationException("MySql connection string is not configured.");
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Adds parameters to the MySqlCommand.
+    /// </summary>
+    /// <param name="command">The MySqlCommand to which parameters will be added.</param>
+    /// <param name="prms">The list of parameters to add.</param>
+    private static void AddParameters(MySqlCommand command, List<SqlParameter>? prms)
+    {
+        if (prms == null || prms.Count == 0) return;
+        var paramNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prm in prms)
+        {
+            if (!paramNames.Add(prm.Name))
+                throw new ArgumentException($"Duplicate parameter name: {prm.Name}");
+            command.Parameters.Add(new MySqlParameter(prm.Name, prm.Type)
+            {
+                Value = prm.Value ?? DBNull.Value
+            });
+        }
+    }
+
+    /// <summary>
+    /// Executes a SQL query and returns a DbDataReader.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <returns>A <see cref="DbDataReader"/> containing the result set.</returns>
+    public DbDataReader ExecuteSqlGetData(string sql)
+        => ExecuteSqlGetData(sql, null);
+
+    /// <summary>
+    /// Executes a SQL query with parameters and returns a DbDataReader.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL query.</param>
+    /// <returns>A <see cref="DbDataReader"/> containing the result set.</returns>
+    public DbDataReader ExecuteSqlGetData(string sql, List<SqlParameter>? prms)
+        => ExecuteCommand(sql, prms, cmd => cmd.ExecuteReader(CommandBehavior.CloseConnection));
+
+    /// <summary>
+    /// Executes a SQL query asynchronously and returns a DbDataReader.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with a <see cref="DbDataReader"/> result.</returns>
+    public Task<DbDataReader> ExecuteSqlGetDataAsync(string sql)
+        => ExecuteSqlGetDataAsync(sql, null);
+
+    /// <summary>
+    /// Executes a SQL query with parameters asynchronously and returns a DbDataReader.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL query.</param>
+    /// <returns>A task representing the asynchronous operation, with a <see cref="DbDataReader"/> result.</returns>
+    public Task<DbDataReader> ExecuteSqlGetDataAsync(string sql, List<SqlParameter>? prms)
+        => ExecuteCommandAsync(sql, prms, async cmd => (DbDataReader)await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection));
+
+    /// <summary>
+    /// Executes a SQL query with parameters asynchronously and returns a DbDataReader, supporting cancellation.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL query.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>A task representing the asynchronous operation, with a <see cref="DbDataReader"/> result.</returns>
+    public Task<DbDataReader> ExecuteSqlGetDataAsync(string sql, List<SqlParameter>? prms, CancellationToken cancellationToken)
+        => ExecuteCommandAsync(sql, prms, async cmd => (DbDataReader)await cmd.ExecuteReaderAsync(CommandBehavior.CloseConnection, cancellationToken));
+
+    /// <summary>
+    /// Executes a SQL command that does not return data.
+    /// </summary>
+    /// <param name="sql">The SQL command to execute.</param>
+    /// <returns>The number of rows affected.</returns>
+    public int ExecuteSql(string sql)
+        => ExecuteSql(sql, null);
+
+    /// <summary>
+    /// Executes a SQL command with parameters that does not return data.
+    /// </summary>
+    /// <param name="sql">The SQL command to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL command.</param>
+    /// <returns>The number of rows affected.</returns>
+    public int ExecuteSql(string sql, List<SqlParameter>? prms)
+        => ExecuteCommand(sql, prms, cmd => cmd.ExecuteNonQuery());
+
+    /// <summary>
+    /// Executes a SQL command asynchronously that does not return data.
+    /// </summary>
+    /// <param name="sql">The SQL command to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with the number of rows affected as result.</returns>
+    public Task<int> ExecuteSqlAsync(string sql)
+        => ExecuteSqlAsync(sql, null);
+
+    /// <summary>
+    /// Executes a SQL command with parameters asynchronously that does not return data.
+    /// </summary>
+    /// <param name="sql">The SQL command to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL command.</param>
+    /// <returns>A task representing the asynchronous operation, with the number of rows affected as result.</returns>
+    public Task<int> ExecuteSqlAsync(string sql, List<SqlParameter>? prms)
+        => ExecuteCommandAsync(sql, prms, cmd => cmd.ExecuteNonQueryAsync());
+
+    /// <summary>
+    /// Executes multiple SQL commands within a transaction.
+    /// </summary>
+    /// <param name="commands">A collection of SQL commands and their parameters to execute in the transaction.</param>
+    public void ExecuteTransaction(IEnumerable<(string Sql, List<SqlParameter>? Parameters)> commands)
+        => ExecuteTransaction(commands, IsolationLevel.ReadCommitted);
+
+    /// <summary>
+    /// Executes multiple SQL commands within a transaction with a specified isolation level.
+    /// </summary>
+    /// <param name="commands">A collection of SQL commands and their parameters to execute in the transaction.</param>
+    /// <param name="isolationLevel">The transaction isolation level.</param>
+    public void ExecuteTransaction(IEnumerable<(string Sql, List<SqlParameter>? Parameters)> commands, IsolationLevel isolationLevel)
+    {
+        ArgumentNullException.ThrowIfNull(commands);
+        using var conn = new MySqlConnection(_connectionString);
+        conn.Open();
+        using var transaction = conn.BeginTransaction(isolationLevel);
+        try
+        {
+            foreach (var (sql, prms) in commands)
+            {
+                if (string.IsNullOrWhiteSpace(sql))
+                    throw new ArgumentException("SQL must not be null or empty.", nameof(sql));
+                using var command = new MySqlCommand(sql, conn, transaction);
+                AddParameters(command, prms);
+                command.ExecuteNonQuery();
+            }
+            transaction.Commit();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                if (transaction.Connection != null)
+                    transaction.Rollback();
+            }
+            catch (Exception rollbackEx)
+            {
+                _logger.LogError(rollbackEx, "Rollback failed");
+            }
+            var logDetails = string.Join("\n", commands.Select(c =>
+                $"SQL: {c.Sql}\nParams: {FormatParameters(c.Parameters)}"));
+            _logger.LogError(ex, "Exception occurred while executing transaction.\n{0}", logDetails);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Executes multiple SQL commands asynchronously within a transaction.
+    /// </summary>
+    /// <param name="commands">A collection of SQL commands and their parameters to execute in the transaction.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public Task ExecuteTransactionAsync(IEnumerable<(string Sql, List<SqlParameter>? Parameters)> commands)
+        => ExecuteTransactionAsync(commands, IsolationLevel.ReadCommitted);
+
+    /// <summary>
+    /// Executes multiple SQL commands asynchronously within a transaction with a specified isolation level.
+    /// </summary>
+    /// <param name="commands">A collection of SQL commands and their parameters to execute in the transaction.</param>
+    /// <param name="isolationLevel">The transaction isolation level.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task ExecuteTransactionAsync(IEnumerable<(string Sql, List<SqlParameter>? Parameters)> commands, IsolationLevel isolationLevel)
+    {
+        ArgumentNullException.ThrowIfNull(commands);
+        await using var conn = new MySqlConnection(_connectionString);
+        await conn.OpenAsync();
+        await using var transaction = await conn.BeginTransactionAsync(isolationLevel);
+        try
+        {
+            foreach (var (sql, prms) in commands)
+            {
+                if (string.IsNullOrWhiteSpace(sql))
+                    throw new ArgumentException("SQL must not be null or empty.", nameof(sql));
+                await using var command = new MySqlCommand(sql, conn, transaction);
+                AddParameters(command, prms);
+                await command.ExecuteNonQueryAsync();
+            }
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                if (transaction.Connection != null)
+                    await transaction.RollbackAsync();
+            }
+            catch (Exception rollbackEx)
+            {
+                _logger.LogError(rollbackEx, "Rollback failed");
+            }
+            var logDetails = string.Join("\n", commands.Select(c =>
+                $"SQL: {c.Sql}\nParams: {FormatParameters(c.Parameters)}"));
+            _logger.LogError(ex, "Exception occurred while executing transaction.\n{0}", logDetails);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Executes a SQL query and returns the result as a list of dictionaries.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL query.</param>
+    /// <returns>A list of dictionaries representing the result set.</returns>
+    public List<Dictionary<string, object>> ExecuteSqlGetList(string sql, List<SqlParameter>? prms)
+    {
+        return ExecuteCommand(sql, prms, static cmd => {
+            var results = new List<Dictionary<string, object>>();
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) {
+                var row = new Dictionary<string, object>();
+                for (int i = 0; i < reader.FieldCount; i++) {
+                    row[reader.GetName(i)] = reader.IsDBNull(i) ? DBNull.Value : reader.GetValue(i);
+                }
+                results.Add(row);
+            }
+            return results;
+        });
+    }
+
+    /// <summary>
+    /// Executes a SQL query and returns the result as a list of dictionaries.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <returns>A list of dictionaries representing the result set.</returns>
+    public List<Dictionary<string, object>> ExecuteSqlGetList(string sql)
+        => ExecuteSqlGetList(sql, null);
+
+    /// <summary>
+    /// Executes a SQL query asynchronously and returns the result as a list of dictionaries.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL query.</param>
+    /// <returns>A task representing the asynchronous operation, with a list of dictionaries representing the result set.</returns>
+    public async Task<List<Dictionary<string, object>>> ExecuteSqlGetListAsync(string sql, List<SqlParameter>? prms)
+    {
+        return await ExecuteCommandAsync(sql, prms, async cmd => {
+            var results = new List<Dictionary<string, object>>();
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync()) {
+                var row = new Dictionary<string, object>();
+                for (int i = 0; i < reader.FieldCount; i++) {
+                    row[reader.GetName(i)] = await reader.IsDBNullAsync(i) ? DBNull.Value : reader.GetValue(i);
+                }
+                results.Add(row);
+            }
+            return results;
+        });
+    }
+
+    /// <summary>
+    /// Executes a SQL query asynchronously and returns the result as a list of dictionaries.
+    /// </summary>
+    /// <param name="sql">The SQL query to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with a list of dictionaries representing the result set.</returns>
+    public Task<List<Dictionary<string, object>>> ExecuteSqlGetListAsync(string sql)
+        => ExecuteSqlGetListAsync(sql, null);
+
+    /// <summary>
+    /// Formats parameters for logging.
+    /// </summary>
+    /// <param name="prms">The list of parameters to format.</param>
+    /// <returns>A string representation of the parameters.</returns>
+    private static string FormatParameters(List<SqlParameter>? prms)
+    {
+        if (prms == null || prms.Count == 0) return "(none)";
+        return string.Join(", ", prms.Select(p => $"{p.Name}={p.Value}"));
+    }
+
+    /// <summary>
+    /// Executes a SQL command with the specified executor function.
+    /// </summary>
+    /// <typeparam name="T">The return type of the executor function.</typeparam>
+    /// <param name="sql">The SQL command to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL command.</param>
+    /// <param name="executor">The function that executes the command and returns a result.</param>
+    /// <returns>The result of the executor function.</returns>
+    private T ExecuteCommand<T>(string sql, List<SqlParameter>? prms, Func<MySqlCommand, T> executor)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            throw new ArgumentException("SQL must not be null or empty.", nameof(sql));
+        using var conn = new MySqlConnection(_connectionString);
+        try
+        {
+            conn.Open();
+            using var command = new MySqlCommand(sql, conn);
+            AddParameters(command, prms);
+            _logger.LogDebug("Executing SQL: {Sql}\nParams: {Params}", sql, FormatParameters(prms));
+            return executor(command);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception occurred while executing SQL.\nSQL: {Sql}\nParams: {Params}", sql, FormatParameters(prms));
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Executes a SQL command asynchronously with the specified executor function.
+    /// </summary>
+    /// <typeparam name="T">The return type of the executor function.</typeparam>
+    /// <param name="sql">The SQL command to execute.</param>
+    /// <param name="prms">The list of parameters for the SQL command.</param>
+    /// <param name="executor">The function that executes the command and returns a result.</param>
+    /// <returns>A task representing the asynchronous operation, with the result of the executor function.</returns>
+    private async Task<T> ExecuteCommandAsync<T>(string sql, List<SqlParameter>? prms, Func<MySqlCommand, Task<T>> executor)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            throw new ArgumentException("SQL must not be null or empty.", nameof(sql));
+        await using var conn = new MySqlConnection(_connectionString);
+        try
+        {
+            await conn.OpenAsync();
+            await using var command = new MySqlCommand(sql, conn);
+            AddParameters(command, prms);
+            _logger.LogDebug("Executing SQL: {Sql}\nParams: {Params}", sql, FormatParameters(prms));
+            return await executor(command);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception occurred while executing SQL.\nSQL: {Sql}\nParams: {Params}", sql, FormatParameters(prms));
+            throw;
+        }
+    }
+}

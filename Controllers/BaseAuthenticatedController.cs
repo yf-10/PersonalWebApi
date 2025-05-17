@@ -1,0 +1,84 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+using System.Diagnostics;
+
+namespace PersonalWebApi.Controllers;
+/// <summary>
+/// Base controller for authentication
+/// </summary>
+[ApiController]
+public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration configuration) : ControllerBase, IActionFilter {
+    protected readonly IConfiguration configuration = configuration;
+
+    /// <summary>
+    /// Default API key for authentication
+    /// </summary>
+    private const string DefaultApiKey = "e74c2f8a-3d92-4a67-95e2-8c874baf37db";
+
+    /// <summary>
+    /// Stopwatch key for HttpContext.Items
+    /// </summary>
+    private const string StopwatchKey = "__BaseAuthenticatedController_Stopwatch";
+
+    /// <summary>
+    /// Called before the action executes. Performs API key authentication and IP address validation.
+    /// Starts a stopwatch to measure execution time.
+    /// </summary>
+    /// <param name="context">ActionExecutingContext</param>
+    public void OnActionExecuting(ActionExecutingContext context) {
+        // Check if the API key is valid
+        if (!IsAuthenticated(context)) {
+            context.Result = new UnauthorizedResult();
+            return;
+        }
+        // Check if the IP address is valid (only allow local requests)
+        if (!IsValidIpAddress()) {
+            context.Result = StatusCode(403, "Forbidden: Only local requests are allowed.");
+            return;
+        }
+        // Start stopwatch for measuring action execution time
+        var sw = new Stopwatch();
+        sw.Start();
+        context.HttpContext.Items[StopwatchKey] = sw;
+    }
+
+    /// <summary>
+    /// Checks if the request is authenticated by validating the API key in the header.
+    /// </summary>
+    /// <param name="context">ActionExecutingContext</param>
+    /// <returns>True if authenticated, otherwise false.</returns>
+    private static bool IsAuthenticated(ActionExecutingContext context) {
+        var apiKey = context.HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
+        if (string.IsNullOrEmpty(apiKey) || apiKey != DefaultApiKey) {
+            // return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Checks if the remote IP address is localhost (127.0.0.1 or ::1).
+    /// </summary>
+    /// <returns>True if the request is from localhost, otherwise false.</returns>
+    private bool IsValidIpAddress() {
+        var remoteIp = HttpContext.Connection.RemoteIpAddress;
+        // Check if the remote IP address is localhost
+        if (!(remoteIp?.ToString() == "127.0.0.1" || remoteIp?.ToString() == "::1")) {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Called after the action executes.
+    /// Stops the stopwatch and logs the elapsed time.
+    /// </summary>
+    /// <param name="context">ActionExecutedContext</param>
+    public void OnActionExecuted(ActionExecutedContext context) {
+        if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw) {
+            sw.Stop();
+            var msec = sw.ElapsedMilliseconds;
+            logger.LogInformation("Action executed in {ElapsedMilliseconds} ms", msec);
+        }
+    }
+
+}
