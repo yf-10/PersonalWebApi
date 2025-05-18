@@ -2,15 +2,25 @@ using System.Runtime.Serialization;
 
 namespace PersonalWebApi.Models.Data;
 
-[DataContract]
-public class ApiResponseJson(int status, string message, int dataCount, dynamic? data) {
-    [DataMember]
-    public int Status { get; private set; } = status;
-    [DataMember]
-    public string Message { get; private set; } = message;
-    [DataMember]
-    public int DataCount { get; private set; } = dataCount;
-    [DataMember]
-    public dynamic? Data { get; private set; } = data;
+public enum ApiResponseStatus {
+    Success = 0,
+    Error = 1,
+    NotFound = 2,
+    Unauthorized = 3,
+    ValidationError = 4,
+    BadRequest = 5,
+    InternalServerError = 6,
+    NotImplemented = 7,
+    ServiceUnavailable = 8,
+    Forbidden = 9,
+}
 
+[DataContract]
+public class ApiResponseJson<T>(ApiResponseStatus status, string message, T? data) {
+    [DataMember]
+    public ApiResponseStatus Status { get; set; } = status;
+    [DataMember]
+    public string Message { get; set; } = message;
+    [DataMember]
+    public T? Data { get; set; } = data;
 }

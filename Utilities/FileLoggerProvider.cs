@@ -37,7 +37,6 @@ public class FileLoggerProvider : ILoggerProvider {
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) {
             Directory.CreateDirectory(dir);
         }
-        // Start background async log writer
         worker = Task.Run(WriteLogWorkerAsync);
     }
 
@@ -57,9 +56,9 @@ public class FileLoggerProvider : ILoggerProvider {
     public void Dispose() {
         if (disposed) return;
         disposed = true;
-        logChannel.Writer.Complete(); // Complete the channel so the worker can finish
-        try { worker.Wait(); } catch { } // Wait for the background worker to finish
-        cts.Cancel(); // Cancel any pending operations
+        logChannel.Writer.Complete();
+        try { worker.Wait(); } catch { }
+        cts.Cancel();
         cts.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -72,7 +71,7 @@ public class FileLoggerProvider : ILoggerProvider {
         try {
             await foreach (var msg in logChannel.Reader.ReadAllAsync(cts.Token)) {
                 try {
-                    await SafeRotateAndWriteAsync(msg); // Write log message and rotate file if needed
+                    await SafeRotateAndWriteAsync(msg);
                 } catch (IOException ioEx) {
                     Console.Error.WriteLine($"FileLogger IO Error: {ioEx.Message}");
                 } catch (Exception ex) {
@@ -122,7 +121,6 @@ public class FileLoggerProvider : ILoggerProvider {
         int retry = 3;
         while (retry-- > 0) {
             try {
-                // Try to open exclusively before moving
                 using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
                     fs.Close();
                 }
@@ -133,7 +131,6 @@ public class FileLoggerProvider : ILoggerProvider {
             }
         }
     }
-
 }
 
 /// <summary>
@@ -188,5 +185,4 @@ public class FileLogger(
             // Channel is completed/disposed, ignore
         }
     }
-
 }

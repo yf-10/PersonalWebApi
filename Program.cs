@@ -7,14 +7,14 @@ if (builder.Environment.IsDevelopment()) {
     builder.Logging.AddProvider(new PersonalWebApi.Utilities.FileLoggerProvider(
         "logs/dev.log",         // Log file path for development
         LogLevel.Debug,         // Minimum log level: Debug
-        10 * 1024               // Max file size: 10 KB
+        10 * 1024 * 1024        // Max file size: 10 MB
     ));
 } else {
     // In production: use a production log file, higher log level, and larger max file size
     builder.Logging.AddProvider(new PersonalWebApi.Utilities.FileLoggerProvider(
         "logs/prd.log",         // Log file path for production
         LogLevel.Information,   // Minimum log level: Information
-        20 * 1024 * 1024        // Max file size: 20 MB
+        10 * 1024 * 1024        // Max file size: 10 MB
     ));
 }
 
@@ -24,10 +24,14 @@ builder.Services.AddControllers();
 // Register Swagger/OpenAPI services for API documentation and testing
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c => {
+    c.DocInclusionPredicate((docName, apiDesc) => {
+        return apiDesc.ActionDescriptor?.DisplayName?.Contains("BaseAuthenticatedController") != true;
+    });
+});
 
 // Register the DB worker service
-builder.Services.AddSingleton<PersonalWebApi.Utilities.PostgresqlWorker>();
-builder.Services.AddSingleton<PersonalWebApi.Utilities.MySqlWorker>();
+builder.Services.AddSingleton<PersonalWebApi.Utilities.PostgresDbWorker>();
 
 // Build the WebApplication instance
 var app = builder.Build();

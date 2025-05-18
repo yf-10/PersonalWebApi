@@ -6,7 +6,6 @@ namespace PersonalWebApi.Controllers;
 /// <summary>
 /// Base controller for authentication
 /// </summary>
-[ApiController]
 public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration configuration) : ControllerBase, IActionFilter {
     protected readonly IConfiguration configuration = configuration;
 
@@ -25,17 +24,21 @@ public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration
     /// Starts a stopwatch to measure execution time.
     /// </summary>
     /// <param name="context">ActionExecutingContext</param>
+    [ApiExplorerSettings(IgnoreApi = true)]
     public void OnActionExecuting(ActionExecutingContext context) {
+        logger.LogInformation("Starting action execution.");
         // Check if the API key is valid
         if (!IsAuthenticated(context)) {
             context.Result = new UnauthorizedResult();
             return;
         }
+        logger.LogDebug("API key is valid.");
         // Check if the IP address is valid (only allow local requests)
         if (!IsValidIpAddress()) {
             context.Result = StatusCode(403, "Forbidden: Only local requests are allowed.");
             return;
         }
+        logger.LogDebug("IP address is valid.");
         // Start stopwatch for measuring action execution time
         var sw = new Stopwatch();
         sw.Start();
@@ -73,6 +76,7 @@ public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration
     /// Stops the stopwatch and logs the elapsed time.
     /// </summary>
     /// <param name="context">ActionExecutedContext</param>
+    [ApiExplorerSettings(IgnoreApi = true)]
     public void OnActionExecuted(ActionExecutedContext context) {
         if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw) {
             sw.Stop();
