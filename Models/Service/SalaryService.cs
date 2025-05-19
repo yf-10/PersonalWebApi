@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
+using PersonalWebApi.Models.Config;
 using PersonalWebApi.Models.Data;
 using PersonalWebApi.Models.DataAccess;
 using PersonalWebApi.Utilities;
@@ -15,11 +16,11 @@ namespace PersonalWebApi.Models.Service;
 public class SalaryService
 {
     private readonly ILogger<SalaryService> _logger = new Logger<SalaryService>(new LoggerFactory());
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<AppSettings> _options;
 
-    public SalaryService(IConfiguration configuration)
+    public SalaryService(IOptions<AppSettings> options)
     {
-        _configuration = configuration;
+        _options = options;
     }
 
     /// <summary>
@@ -30,7 +31,7 @@ public class SalaryService
     public int RegisterSalariesWithTransaction(List<Salary> salaries)
     {
         using var scope = new TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled);
-        var worker = new PostgresDbWorker(_configuration);
+        var worker = new PostgresDbWorker(_options);
         var repository = new SalaryRepository(worker);
         int count = repository.InsertAll(salaries);
         scope.Complete();
@@ -43,7 +44,7 @@ public class SalaryService
     /// <returns>List of Salary objects.</returns>
     public List<Salary> GetAllSalaries()
     {
-        var worker = new PostgresDbWorker(_configuration);
+        var worker = new PostgresDbWorker(_options);
         var repository = new SalaryRepository(worker);
         return repository.GetAll();
     }

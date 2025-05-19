@@ -42,6 +42,9 @@ builder.Services.AddCors(options => {
     });
 });
 
+// Bind appsettings.json to POCO class
+builder.Services.Configure<PersonalWebApi.Models.Config.AppSettings>(builder.Configuration);
+
 // Build the WebApplication instance
 var app = builder.Build();
 

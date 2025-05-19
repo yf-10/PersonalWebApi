@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Options;
+using PersonalWebApi.Models.Config;
 using System.Diagnostics;
 
 namespace PersonalWebApi.Controllers;
+
 /// <summary>
 /// Base controller for authentication
 /// </summary>
-public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration configuration) : ControllerBase, IActionFilter {
-    protected readonly IConfiguration configuration = configuration;
+public abstract class BaseAuthenticatedController : ControllerBase, IActionFilter
+{
+    protected readonly ILogger logger;
+    protected readonly IOptions<AppSettings> options;
 
     /// <summary>
     /// Default API key for authentication
@@ -20,21 +25,35 @@ public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration
     private const string StopwatchKey = "__BaseAuthenticatedController_Stopwatch";
 
     /// <summary>
+    /// コンストラクタ（POCOクラス＋IOptionsパターン）
+    /// </summary>
+    /// <param name="logger">ILoggerインスタンス</param>
+    /// <param name="options">IOptionsでバインドされたAppSettings</param>
+    protected BaseAuthenticatedController(ILogger logger, IOptions<AppSettings> options)
+    {
+        this.logger = logger;
+        this.options = options;
+    }
+
+    /// <summary>
     /// Called before the action executes. Performs API key authentication and IP address validation.
     /// Starts a stopwatch to measure execution time.
     /// </summary>
     /// <param name="context">ActionExecutingContext</param>
     [ApiExplorerSettings(IgnoreApi = true)]
-    public void OnActionExecuting(ActionExecutingContext context) {
+    public void OnActionExecuting(ActionExecutingContext context)
+    {
         logger.LogInformation("Starting action execution.");
         // Check if the API key is valid
-        if (!IsAuthenticated(context)) {
+        if (!IsAuthenticated(context))
+        {
             context.Result = new UnauthorizedResult();
             return;
         }
         logger.LogDebug("API key is valid.");
         // Check if the IP address is valid (only allow local requests)
-        if (!IsValidIpAddress()) {
+        if (!IsValidIpAddress())
+        {
             context.Result = StatusCode(403, "Forbidden: Only local requests are allowed.");
             return;
         }
@@ -50,10 +69,12 @@ public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration
     /// </summary>
     /// <param name="context">ActionExecutingContext</param>
     /// <returns>True if authenticated, otherwise false.</returns>
-    private static bool IsAuthenticated(ActionExecutingContext context) {
+    private static bool IsAuthenticated(ActionExecutingContext context)
+    {
         var apiKey = context.HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
-        if (string.IsNullOrEmpty(apiKey) || apiKey != DefaultApiKey) {
-            // return false;
+        if (string.IsNullOrEmpty(apiKey) || apiKey != DefaultApiKey)
+        {
+            return false;
         }
         return true;
     }
@@ -62,10 +83,12 @@ public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration
     /// Checks if the remote IP address is localhost (127.0.0.1 or ::1).
     /// </summary>
     /// <returns>True if the request is from localhost, otherwise false.</returns>
-    private bool IsValidIpAddress() {
+    private bool IsValidIpAddress()
+    {
         var remoteIp = HttpContext.Connection.RemoteIpAddress;
         // Check if the remote IP address is localhost
-        if (!(remoteIp?.ToString() == "127.0.0.1" || remoteIp?.ToString() == "::1")) {
+        if (!(remoteIp?.ToString() == "127.0.0.1" || remoteIp?.ToString() == "::1"))
+        {
             return false;
         }
         return true;
@@ -77,12 +100,13 @@ public abstract class BaseAuthenticatedController(ILogger logger, IConfiguration
     /// </summary>
     /// <param name="context">ActionExecutedContext</param>
     [ApiExplorerSettings(IgnoreApi = true)]
-    public void OnActionExecuted(ActionExecutedContext context) {
-        if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw) {
+    public void OnActionExecuted(ActionExecutedContext context)
+    {
+        if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw)
+        {
             sw.Stop();
             var msec = sw.ElapsedMilliseconds;
             logger.LogInformation("Action executed in {ElapsedMilliseconds} ms", msec);
         }
     }
-
 }

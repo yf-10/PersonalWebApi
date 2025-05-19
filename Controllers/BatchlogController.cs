@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+using PersonalWebApi.Models.Config;
 using PersonalWebApi.Models.Data;
 using PersonalWebApi.Models.Service;
 using PersonalWebApi.Utilities;
@@ -8,8 +10,18 @@ namespace PersonalWebApi.Controllers;
 
 [ApiController]
 [Route("api/batchlogs")]
-public class BatchlogController(ILogger<BatchlogController> logger, IConfiguration configuration) : BaseAuthenticatedController(logger, configuration)
+public class BatchlogController : BaseAuthenticatedController
 {
+    private readonly ILogger<BatchlogController> _logger;
+    private readonly IOptions<AppSettings> _options;
+
+    public BatchlogController(ILogger<BatchlogController> logger, IOptions<AppSettings> options)
+        : base(logger, options)
+    {
+        _logger = logger;
+        _options = options;
+    }
+
     // [GET] /api/batchlogs/{uuid?}
     [HttpGet]
     [Authorize]
@@ -18,13 +30,13 @@ public class BatchlogController(ILogger<BatchlogController> logger, IConfigurati
     {
         try
         {
-            var service = new BatchlogService(configuration);
+            var service = new BatchlogService(_options);
             var batchlogs = service.GetBatchlogs(uuid, keyword, status);
             return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlogs retrieved successfully.", batchlogs));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while retrieving batchlogs.");
+            _logger.LogError(ex, "An error occurred while retrieving batchlogs.");
             return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
@@ -37,14 +49,14 @@ public class BatchlogController(ILogger<BatchlogController> logger, IConfigurati
     {
         try
         {
-            var service = new BatchlogService(configuration);
+            var service = new BatchlogService(_options);
             var uuid = service.BeginBatchlog(request.ProgramId, request.ProgramName, request.UserName);
             var batchlogs = service.GetBatchlogs(uuid, null, null);
             return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog started.", batchlogs));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while beginning batchlog.");
+            _logger.LogError(ex, "An error occurred while beginning batchlog.");
             return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
@@ -57,14 +69,14 @@ public class BatchlogController(ILogger<BatchlogController> logger, IConfigurati
     {
         try
         {
-            var service = new BatchlogService(configuration);
+            var service = new BatchlogService(_options);
             service.CompleteBatchlog(uuid, userName);
             var batchlogs = service.GetBatchlogs(uuid, null, null);
             return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog completed.", batchlogs));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while completing batchlog.");
+            _logger.LogError(ex, "An error occurred while completing batchlog.");
             return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
@@ -77,14 +89,14 @@ public class BatchlogController(ILogger<BatchlogController> logger, IConfigurati
     {
         try
         {
-            var service = new BatchlogService(configuration);
+            var service = new BatchlogService(_options);
             service.AbortBatchlog(uuid, userName);
             var batchlogs = service.GetBatchlogs(uuid, null, null);
             return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog aborted.", batchlogs));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while aborting batchlog.");
+            _logger.LogError(ex, "An error occurred while aborting batchlog.");
             return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
@@ -97,14 +109,14 @@ public class BatchlogController(ILogger<BatchlogController> logger, IConfigurati
     {
         try
         {
-            var service = new BatchlogService(configuration);
+            var service = new BatchlogService(_options);
             service.AddBatchlogLog(detail, userName);
             var batchlogs = service.GetBatchlogs(detail.Uuid, null, null);
             return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog detail added.", batchlogs));
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An error occurred while adding batchlog detail.");
+            _logger.LogError(ex, "An error occurred while adding batchlog detail.");
             return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }

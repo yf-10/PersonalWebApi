@@ -21,7 +21,8 @@ public class BatchlogMainMapper : IEntityMapper<BatchlogMain> {
             row["program_name"] as string ?? throw new InvalidCastException("program_name is null"),
             row["start_time"] as DateTime?,
             row["end_time"] as DateTime?,
-            [] // Details are not loaded in this repository
+            [], // Details are not loaded in this repository
+            "TEST"
         );
     }
 }

@@ -13,7 +13,8 @@ public class BatchlogDetailMapper : IEntityMapper<BatchlogDetail> {
             row["batchlog_uuid"] as string ?? throw new InvalidCastException("batchlog_uuid is null"),
             row["id"] is int i ? i : Convert.ToInt32(row["id"]),
             row["message"] as string ?? throw new InvalidCastException("message is null"),
-            row["log_time"] as string ?? throw new InvalidCastException("log_time is null")
+            row["log_time"] as DateTime? ?? throw new InvalidCastException("log_time is null"),
+            "TEST"
         );
     }
 }
