@@ -19,7 +19,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
     public string GetSelectAllSql() =>
         $@"SELECT {SelectColumns}
             FROM {TableName}
-            ORDER BY month, payment_item";
+            ORDER BY month desc, payment_item";
 
     public string GetSelectByIdSql() =>
         $@"SELECT {SelectColumns}

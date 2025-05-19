@@ -47,7 +47,7 @@ public class BatchlogDetailSqlHelper : ISqlHelper<BatchlogDetail> {
 
     public QueryParameterCollection ToParameterCollection(BatchlogDetail entity) {
         return [
-            new("@batchlog_uuid", entity.BatchlogUuid),
+            new("@batchlog_uuid", entity.Uuid),
             new("@id", entity.Id),
             new("@message", entity.Message),
             new("@log_time", entity.LogTime)

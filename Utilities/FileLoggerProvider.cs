@@ -1,34 +1,30 @@
 using System.Threading.Channels;
 
 namespace PersonalWebApi.Utilities;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Provides a custom file logger provider for ILogger.
-/// This provider writes log messages to a file asynchronously using a background worker and a channel.
-/// Supports log level filtering and log file rotation based on file size.
+/// ファイルへの非同期ロギングを提供するILoggerProvider実装
+/// バックグラウンドワーカーとチャネルを使い、アプリのパフォーマンスを損なわずにログをファイルへ書き込む
+/// ログレベルによるフィルタリングやファイルサイズによる自動ローテーションもサポート
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class FileLoggerProvider : ILoggerProvider {
-    // Path to the log file
     private readonly string filePath;
-    // Minimum log level to write
     private readonly LogLevel minLogLevel;
-    // Maximum file size in bytes before rotating the log file
     private readonly long maxFileSizeBytes;
-    // Channel for queuing log messages for asynchronous writing
     private readonly Channel<string> logChannel = Channel.CreateUnbounded<string>();
-    // Cancellation token source for background worker cancellation
     private readonly CancellationTokenSource cts = new();
-    // Background worker task for writing log messages
     private readonly Task worker;
-    // Indicates whether the provider has been disposed
     private volatile bool disposed = false;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new instance of the FileLoggerProvider.
+    /// ファイルロガープロバイダー：初期化
     /// </summary>
-    /// <param name="filePath">Path to the log file.</param>
-    /// <param name="minLogLevel">Minimum log level to write.</param>
-    /// <param name="maxFileSizeBytes">Maximum file size in bytes before rotation.</param>
+    /// <param name="filePath">ログファイルのパス</param>
+    /// <param name="minLogLevel">出力する最小ログレベル</param>
+    /// <param name="maxFileSizeBytes">ローテーション前の最大ファイルサイズ（Byte）</param>
+    /// --------------------------------------------------------------------------------
     public FileLoggerProvider(string filePath, LogLevel minLogLevel = LogLevel.Information, long maxFileSizeBytes = 10 * 1024 * 1024) {
         this.filePath = filePath;
         this.minLogLevel = minLogLevel;
@@ -40,33 +36,44 @@ public class FileLoggerProvider : ILoggerProvider {
         worker = Task.Run(WriteLogWorkerAsync);
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Creates a new FileLogger instance for the specified category.
+    /// ファイルロガー：インスタンス生成
     /// </summary>
-    /// <param name="categoryName">The category name for messages produced by the logger.</param>
-    /// <returns>A FileLogger instance.</returns>
+    /// <param name="categoryName">ロガーのカテゴリ名（通常はクラス名）</param>
+    /// <returns>FileLogger インスタンス</returns>
+    /// --------------------------------------------------------------------------------
     public ILogger CreateLogger(string categoryName) {
         return new FileLogger(categoryName, minLogLevel, logChannel, () => disposed);
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Disposes the logger provider and releases all resources.
-    /// Signals the background worker to complete and waits for it to finish.
+    /// プロバイダーを破棄し、バックグラウンドワーカーの終了とリソース解放を行う
+    /// タイムアウト（例: 5秒）を超えた場合は強制的に終了する
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public void Dispose() {
         if (disposed) return;
         disposed = true;
         logChannel.Writer.Complete();
-        try { worker.Wait(); } catch { }
+        try {
+            // タイムアウトを5秒に設定
+            if (!worker.Wait(TimeSpan.FromSeconds(5))) {
+                Console.Error.WriteLine("FileLoggerProvider: ログ書き込みワーカーの終了待機がタイムアウトしました");
+            }
+        } catch { }
         cts.Cancel();
         cts.Dispose();
         GC.SuppressFinalize(this);
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Background worker that writes log messages from the channel to the file asynchronously.
-    /// Handles cancellation and exceptions robustly.
+    /// チャネルからログメッセージを受信し、ファイルへ非同期で書き込むバックグラウンドワーカー
+    /// IO例外時はリトライし、キャンセルや致命的例外も安全に処理する
     /// </summary>
+    /// --------------------------------------------------------------------------------
     private async Task WriteLogWorkerAsync() {
         try {
             await foreach (var msg in logChannel.Reader.ReadAllAsync(cts.Token)) {
@@ -79,17 +86,19 @@ public class FileLoggerProvider : ILoggerProvider {
                 }
             }
         } catch (OperationCanceledException) {
-            // Graceful shutdown on cancellation
+            // キャンセル時は正常終了
         } catch (Exception ex) {
             Console.Error.WriteLine($"FileLogger Worker Fatal Error: {ex.Message}");
         }
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Safely rotates the log file if needed and writes the log message asynchronously.
-    /// Retries on IO exceptions.
+    /// ファイルサイズが上限を超えていればローテーションし、ログメッセージを書き込む
+    /// IO例外時はリトライする
     /// </summary>
-    /// <param name="msg">The log message to write.</param>
+    /// <param name="msg">書き込むログメッセージ</param>
+    /// --------------------------------------------------------------------------------
     private async Task SafeRotateAndWriteAsync(string msg) {
         for (int retry = 0; retry < 3; retry++) {
             try {
@@ -104,10 +113,12 @@ public class FileLoggerProvider : ILoggerProvider {
         }
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Rotates the log file if it exceeds the maximum allowed size.
-    /// Uses exclusive lock to avoid race conditions.
+    /// ファイルサイズが最大値を超えていれば、タイムスタンプ付きのファイル名でローテーションする
+    /// 排他制御を行い、IO例外時はリトライする
     /// </summary>
+    /// --------------------------------------------------------------------------------
     private async Task RotateIfNeededAsync() {
         if (!File.Exists(filePath)) return;
         var fileInfo = new FileInfo(filePath);
@@ -133,56 +144,63 @@ public class FileLoggerProvider : ILoggerProvider {
     }
 }
 
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Custom file logger implementation using a background channel.
-/// This logger writes log messages to a channel, which are then processed asynchronously by a background worker.
+/// バックグラウンドチャネルを使い、非同期でファイルに書き込むカスタムILogger実装
+/// ログレベルによるフィルタリングやカテゴリ名付与、例外情報の付加も行う
 /// </summary>
-public class FileLogger(
-    string categoryName,
-    LogLevel minLogLevel,
-    Channel<string> logChannel,
-    Func<bool> isDisposed
-) : ILogger {
-    // The category name for the logger (e.g., class or feature name)
+/// <remarks>
+/// ファイルロガー：初期化
+/// </remarks>
+/// <param name="categoryName">ロガーのカテゴリ名</param>
+/// <param name="minLogLevel">出力する最小ログレベル</param>
+/// <param name="logChannel">ログメッセージ送信用チャネル</param>
+/// <param name="isDisposed">プロバイダー破棄済み判定デリゲート</param>
+/// --------------------------------------------------------------------------------
+public class FileLogger(string categoryName, LogLevel minLogLevel, Channel<string> logChannel, Func<bool> isDisposed) : ILogger {
     private readonly string categoryName = categoryName;
-    // The minimum log level to write
     private readonly LogLevel minLogLevel = minLogLevel;
-    // The channel used to queue log messages for asynchronous writing
     private readonly Channel<string> logChannel = logChannel;
-    // Function to check if the provider has been disposed
     private readonly Func<bool> isDisposed = isDisposed;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// NullScope is a no-op disposable used for BeginScope.
+    /// NullScopeはBeginScope用の何もしないIDisposable
     /// </summary>
+    /// --------------------------------------------------------------------------------
     private class NullScope : IDisposable {
         public static NullScope Instance { get; } = new NullScope();
         public void Dispose() { }
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Returns a no-op scope object.
+    /// スコープロギングは未対応のため、何もしないスコープを返す
     /// </summary>
+    /// --------------------------------------------------------------------------------
     IDisposable ILogger.BeginScope<TState>(TState state) => NullScope.Instance;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Checks if the given log level is enabled.
+    /// 指定したログレベルが有効かどうかを判定する
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public bool IsEnabled(LogLevel logLevel) => logLevel >= minLogLevel;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Writes a log entry to the channel if enabled and not disposed.
+    /// 有効かつ未破棄の場合、チャネルにログエントリを書き込む
+    /// ログにはタイムスタンプ、レベル、カテゴリ、例外情報も付加される
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) {
         if (!IsEnabled(logLevel) || isDisposed()) return;
         var msg = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{logLevel}] [{categoryName}] {formatter(state, exception)}";
-        if (exception != null) {
-            msg += $" {exception}";
-        }
+        if (exception != null) msg += $" {exception}";
         try {
             logChannel.Writer.TryWrite(msg);
         } catch {
-            // Channel is completed/disposed, ignore
+            // チャネルが完了/破棄済みの場合は無視
         }
     }
 }

@@ -33,8 +33,24 @@ builder.Services.AddSwaggerGen(c => {
 // Register the DB worker service
 builder.Services.AddSingleton<PersonalWebApi.Utilities.PostgresDbWorker>();
 
+// Register CORS policy
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowAll", policy => {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // Build the WebApplication instance
 var app = builder.Build();
+
+// Set the application to listen on specific URLs
+app.Urls.Add("https://localhost:5001");
+app.Urls.Add("http://localhost:5000");
+
+// Enable CORS
+app.UseCors("AllowAll");
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment()) {

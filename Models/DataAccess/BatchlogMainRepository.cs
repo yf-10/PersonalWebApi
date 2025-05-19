@@ -51,6 +51,52 @@ public class BatchlogMainRepository(PostgresDbWorker worker, ISqlHelper<Batchlog
     }
 
     /// <summary>
+    /// Retrieves BatchlogMain records by condition (uuid, keyword, status).
+    /// </summary>
+    /// <param name="uuid">The UUID to filter by (optional).</param>
+    /// <param name="keyword">A keyword to search in ProgramName or other fields (optional).</param>
+    /// <param name="status">The status to filter by (optional).</param>
+    /// <returns>List of BatchlogMain objects matching the condition.</returns>
+    public List<BatchlogMain> GetByCondition(string? uuid, string? keyword, string? status)
+    {
+        // ベースSQL
+        var sql = _sqlHelper.GetSelectAllSql();
+        var prms = new Dictionary<string, object>();
+
+        var whereList = new List<string>();
+        if (!string.IsNullOrEmpty(uuid))
+        {
+            whereList.Add("uuid = @uuid");
+            prms.Add("uuid", uuid);
+        }
+        if (!string.IsNullOrEmpty(keyword))
+        {
+            // ProgramNameに対してLIKE検索（必要に応じて他のカラムも追加）
+            whereList.Add("program_name ILIKE @keyword");
+            prms.Add("keyword", $"%{keyword}%");
+        }
+        if (!string.IsNullOrEmpty(status))
+        {
+            whereList.Add("status = @status");
+            prms.Add("status", status);
+        }
+
+        if (whereList.Count > 0)
+        {
+            sql += " WHERE " + string.Join(" AND ", whereList);
+        }
+
+        var paramList = prms.Select(kv => new QueryParameter(kv.Key, kv.Value)).ToList();
+        var rows = _worker.ExecuteSqlGetList(sql, [.. paramList]);
+        var result = new List<BatchlogMain>();
+        foreach (var row in rows)
+        {
+            result.Add(_mapper.MapRowToObject(row));
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Retrieves a BatchlogMain record by UUID.
     /// </summary>
     /// <param name="uuid">The UUID of the BatchlogMain record.</param>

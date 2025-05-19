@@ -62,4 +62,108 @@ public class BatchlogService(IConfiguration configuration) {
         var repository = new BatchlogMainRepository(worker, new BatchlogMainSqlHelper(), new BatchlogMainMapper());
         return repository.GetAll();
     }
+
+    /// <summary>
+    /// BatchlogMainを条件で取得
+    /// </summary>
+    public List<BatchlogMain> GetBatchlogs(string? uuid, string? keyword, string? status)
+    {
+        var worker = new PostgresDbWorker(_configuration);
+        var repository = new BatchlogMainRepository(worker, new BatchlogMainSqlHelper(), new BatchlogMainMapper());
+        return repository.GetByCondition(uuid, keyword, status);
+    }
+
+    /// <summary>
+    /// バッチログ開始（UUID生成、BatchlogMain/Detail登録）
+    /// </summary>
+    public string BeginBatchlog(string programId, string programName, string? userName)
+    {
+        var uuid = Guid.NewGuid().ToString();
+
+        var batchlogMain = new BatchlogMain(
+            uuid,
+            programId,
+            programName,
+            "STARTED",
+            DateTime.Now,
+            null,
+            [],
+            userName
+        );
+
+        var batchlogDetail = new BatchlogDetail(
+            uuid, // batchlogUuid
+            0,    // logNo
+            "Batch started.", // logMsg
+            DateTime.Now,     // logTime
+            userName          // userName
+        );
+
+        using var scope = new TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled);
+        RegisterBatchlogWithTransaction(batchlogMain);
+        RegisterBatchlogDetailWithTransaction(batchlogDetail);
+        scope.Complete();
+
+        return uuid;
+    }
+
+    /// <summary>
+    /// バッチログ完了
+    /// </summary>
+    public void CompleteBatchlog(string uuid, string? userName)
+    {
+        var worker = new PostgresDbWorker(_configuration);
+        var repository = new BatchlogMainRepository(worker, new BatchlogMainSqlHelper(), new BatchlogMainMapper());
+        var batchlog = repository.GetByUuid(uuid);
+        if (batchlog != null) {
+            batchlog.Status = "COMPLETED";
+            batchlog.EndTime = DateTime.Now;
+            batchlog.UserName = userName;
+            UpdateBatchlogWithTransaction(batchlog);
+
+            var detail = new BatchlogDetail(
+                uuid,           // batchlogUuid
+                0,              // logNo
+                "Batch completed.", // logMsg
+                DateTime.Now,   // logTime
+                userName        // userName
+            );
+            RegisterBatchlogDetailWithTransaction(detail);
+        }
+    }
+
+    /// <summary>
+    /// バッチログ中断
+    /// </summary>
+    public void AbortBatchlog(string uuid, string? userName)
+    {
+        var worker = new PostgresDbWorker(_configuration);
+        var repository = new BatchlogMainRepository(worker, new BatchlogMainSqlHelper(), new BatchlogMainMapper());
+        var batchlog = repository.GetByUuid(uuid);
+        if (batchlog != null)
+        {
+            batchlog.Status = "ABORTED";
+            batchlog.EndTime = DateTime.Now;
+            batchlog.UserName = userName;
+            UpdateBatchlogWithTransaction(batchlog);
+
+            var detail = new BatchlogDetail(
+                uuid,           // batchlogUuid
+                0,              // logNo
+                "Batch aborted.", // logMsg
+                DateTime.Now,   // logTime
+                userName        // userName
+            );
+            RegisterBatchlogDetailWithTransaction(detail);
+        }
+    }
+
+    /// <summary>
+    /// バッチログ詳細追加
+    /// </summary>
+    public void AddBatchlogLog(BatchlogDetail detail, string? userName) {
+        detail.LogTime = DateTime.Now;
+        detail.UserName = userName;
+        RegisterBatchlogDetailWithTransaction(detail);
+    }
 }
