@@ -1,112 +1,116 @@
+using System.Diagnostics;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
+
 using PersonalWebApi.Models.Config;
-using System.Diagnostics;
 
 namespace PersonalWebApi.Controllers;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Base controller for authentication
+/// 認証付きコントローラーの基底クラス
 /// </summary>
-public abstract class BaseAuthenticatedController : ControllerBase, IActionFilter
-{
-    protected readonly ILogger logger;
-    protected readonly IOptions<AppSettings> options;
+/// <param name="logger">標準ロガー</param>
+/// <param name="options">アプリケーション設定オプション</param>
+/// --------------------------------------------------------------------------------
+public abstract class BaseAuthenticatedController(ILogger logger, IOptionsSnapshot<AppSettings> options) : ControllerBase, IActionFilter {
 
     /// <summary>
-    /// Default API key for authentication
+    /// 標準ロガー
+    /// </summary>
+    protected readonly ILogger _logger = logger;
+
+    /// <summary>
+    /// アプリケーション設定オプション
+    /// </summary>
+    protected readonly IOptions<AppSettings> _options = options;
+
+    /// <summary>
+    /// APIキー：デフォルト値
     /// </summary>
     private const string DefaultApiKey = "e74c2f8a-3d92-4a67-95e2-8c874baf37db";
 
     /// <summary>
-    /// Stopwatch key for HttpContext.Items
+    /// 処理時間計測用のストップウォッチキー
     /// </summary>
-    private const string StopwatchKey = "__BaseAuthenticatedController_Stopwatch";
+    private const string StopwatchKey = "_BaseAuthenticatedController_Stopwatch";
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// コンストラクタ（POCOクラス＋IOptionsパターン）
+    /// アクション実行前に呼ばれるフィルタ <br/>
+    /// - APIキー認証 <br/>
+    /// - IPアドレスチェック <br/>
+    /// - ストップウォッチ開始 <br/>
     /// </summary>
-    /// <param name="logger">ILoggerインスタンス</param>
-    /// <param name="options">IOptionsでバインドされたAppSettings</param>
-    protected BaseAuthenticatedController(ILogger logger, IOptions<AppSettings> options)
-    {
-        this.logger = logger;
-        this.options = options;
-    }
-
-    /// <summary>
-    /// Called before the action executes. Performs API key authentication and IP address validation.
-    /// Starts a stopwatch to measure execution time.
-    /// </summary>
-    /// <param name="context">ActionExecutingContext</param>
+    /// <param name="context"></param>
+    /// --------------------------------------------------------------------------------
     [ApiExplorerSettings(IgnoreApi = true)]
-    public void OnActionExecuting(ActionExecutingContext context)
-    {
-        logger.LogInformation("Starting action execution.");
-        // Check if the API key is valid
-        if (!IsAuthenticated(context))
-        {
+    public void OnActionExecuting(ActionExecutingContext context) {
+        _logger.LogInformation("Action {ActionName} executing...", context.ActionDescriptor.DisplayName);
+        // APIキー認証
+        if (!IsAuthenticated(context)) {
             context.Result = new UnauthorizedResult();
             return;
         }
-        logger.LogDebug("API key is valid.");
-        // Check if the IP address is valid (only allow local requests)
-        if (!IsValidIpAddress())
-        {
-            context.Result = StatusCode(403, "Forbidden: Only local requests are allowed.");
+        _logger.LogDebug("API key authentication OK.");
+        // IPアドレスチェック（ローカルのみ許可）
+        if (!IsValidIpAddress()) {
+            context.Result = StatusCode(403, "許可されていないIPアドレスです (ローカルのみ許可)");
             return;
         }
-        logger.LogDebug("IP address is valid.");
-        // Start stopwatch for measuring action execution time
+        _logger.LogDebug("IP address validation OK.");
+        // 実行時間計測用ストップウォッチ開始
         var sw = new Stopwatch();
         sw.Start();
         context.HttpContext.Items[StopwatchKey] = sw;
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Checks if the request is authenticated by validating the API key in the header.
-    /// </summary>
-    /// <param name="context">ActionExecutingContext</param>
-    /// <returns>True if authenticated, otherwise false.</returns>
-    private static bool IsAuthenticated(ActionExecutingContext context)
-    {
-        var apiKey = context.HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
-        if (string.IsNullOrEmpty(apiKey) || apiKey != DefaultApiKey)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// Checks if the remote IP address is localhost (127.0.0.1 or ::1).
-    /// </summary>
-    /// <returns>True if the request is from localhost, otherwise false.</returns>
-    private bool IsValidIpAddress()
-    {
-        var remoteIp = HttpContext.Connection.RemoteIpAddress;
-        // Check if the remote IP address is localhost
-        if (!(remoteIp?.ToString() == "127.0.0.1" || remoteIp?.ToString() == "::1"))
-        {
-            return false;
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// Called after the action executes.
-    /// Stops the stopwatch and logs the elapsed time.
+    /// アクション実行後に呼ばれるフィルタ <br/>
+    /// - ストップウォッチを止める <br/>
+    /// - 実行時間をログ出力する <br/>
     /// </summary>
     /// <param name="context">ActionExecutedContext</param>
+    /// --------------------------------------------------------------------------------
     [ApiExplorerSettings(IgnoreApi = true)]
-    public void OnActionExecuted(ActionExecutedContext context)
-    {
-        if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw)
-        {
+    public void OnActionExecuted(ActionExecutedContext context) {
+        if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw) {
             sw.Stop();
             var msec = sw.ElapsedMilliseconds;
-            logger.LogInformation("Action executed in {ElapsedMilliseconds} ms", msec);
+            _logger.LogInformation("Action executed: {ElapsedMilliseconds} ms", msec);
         }
     }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// APIキーを検証する
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns>true: OK / false: NG</returns>
+    /// --------------------------------------------------------------------------------
+    private static bool IsAuthenticated(ActionExecutingContext context) {
+        var apiKey = context.HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
+        if (string.IsNullOrEmpty(apiKey) || apiKey != DefaultApiKey) {
+            return false;
+        }
+        return true;
+    }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// リモートIPアドレスが "localhost" かどうかを判定する
+    /// </summary>
+    /// <returns>true: OK / false: NG</returns>
+    /// --------------------------------------------------------------------------------
+    private bool IsValidIpAddress() {
+        var remoteIp = HttpContext.Connection.RemoteIpAddress;
+        // リモートIPが127.0.0.1または::1かどうか
+        if (!(remoteIp?.ToString() == "127.0.0.1" || remoteIp?.ToString() == "::1")) {
+            return false;
+        }
+        return true;
+    }
+
 }

@@ -2,74 +2,92 @@ using PersonalWebApi.Models.Data;
 using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Repository for accessing Salary data in the database.
+/// リポジトリクラス
 /// </summary>
-public class SalaryRepository : IRepository<Salary> {
-    private readonly PostgresDbWorker _worker;
-    private readonly ISqlHelper<Salary> _sqlHelper;
-    private readonly IEntityMapper<Salary> _mapper;
+/// <param name="manager"></param>
+/// --------------------------------------------------------------------------------
+public class SalaryRepository(PostgresManager manager) : BaseRepository<Salary>(manager), IRepository<Salary> {
+    private readonly SalarySqlHelper _helper = new();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Constructor for SalaryRepository.
+    /// エンティティマッパーを生成する
     /// </summary>
-    /// <param name="worker">The PostgresDbWorker instance for database operations.</param>
-    public SalaryRepository(PostgresDbWorker worker)
-        : this(worker, new SalarySqlHelper(), new SalaryMapper()) { }
+    /// <returns>エンティティマッパー</returns>
+    /// --------------------------------------------------------------------------------
+    protected override IEntityMapper<Salary> CreateMapper() => new SalaryMapper();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Constructor for SalaryRepository with custom SQL helper and mapper.
+    /// [SELECT] 全件取得
     /// </summary>
-    public SalaryRepository(PostgresDbWorker worker, ISqlHelper<Salary> sqlHelper, IEntityMapper<Salary> mapper) {
-        _worker = worker;
-        _sqlHelper = sqlHelper;
-        _mapper = mapper;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public List<Salary> Select() {
+        var rows = _manager.ExecuteSqlGetList(_helper.GetSelectSql());
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets all Salary records from the database.
+    /// [SELECT] 全件取得（非同期）
     /// </summary>
-    public List<Salary> GetAll() {
-        var rows = _worker.ExecuteSqlGetList(_sqlHelper.GetSelectAllSql());
-        var result = new List<Salary>();
-        foreach (var row in rows) {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public async Task<List<Salary>> SelectAsync() {
+        var rows = await _manager.ExecuteSqlGetListAsync(_helper.GetSelectSql());
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets all Salary records from the database asynchronously.
+    /// [SELECT] 期間指定で取得（開始月と終了月を指定）YYYYMM形式
     /// </summary>
-    public async Task<List<Salary>> GetAllAsync() {
-        var rows = await _worker.ExecuteSqlGetListAsync(_sqlHelper.GetSelectAllSql());
-        var result = new List<Salary>();
-        foreach (var row in rows) {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public List<Salary> SelectByMonthBetween(string? startYm = null, string? endYm = null) {
+        if (string.IsNullOrEmpty(startYm))
+            startYm = DateTime.Now.AddMonths(-12).ToString("yyyyMM");
+        if (string.IsNullOrEmpty(endYm))
+            endYm = DateTime.Now.ToString("yyyyMM");
+        InitializeParameters();
+        AddParameter("start_month", startYm);
+        AddParameter("end_month", endYm);
+        var rows = _manager.ExecuteSqlGetList(_helper.GetSelectByMonthBetweenSql(), _parameters);
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new Salary record into the database.
+    /// [INSERT] 新規登録
     /// </summary>
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     public int Insert(Salary entity) {
-        return _worker.ExecuteSql(_sqlHelper.GetInsertSql(), _sqlHelper.ToParameterCollection(entity));
+        return _manager.ExecuteSql(_helper.GetInsertSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new Salary record into the database asynchronously.
+    /// [INSERT] 新規登録（非同期）
     /// </summary>
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     public Task<int> InsertAsync(Salary entity) {
-        return _worker.ExecuteSqlAsync(_sqlHelper.GetInsertSql(), _sqlHelper.ToParameterCollection(entity));
+        return _manager.ExecuteSqlAsync(_helper.GetInsertSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts multiple Salary records into the database.
+    /// [INSERT] 新規登録
     /// </summary>
-    /// <param name="entities">The collection of Salary objects to insert.</param>
-    /// <returns>The total number of rows affected.</returns>
+    /// <param name="entities"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     public int InsertAll(IEnumerable<Salary> entities) {
         int count = 0;
         foreach (var entity in entities) {
@@ -78,11 +96,13 @@ public class SalaryRepository : IRepository<Salary> {
         return count;
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts multiple Salary records into the database asynchronously.
+    /// [INSERT] 新規登録（非同期）
     /// </summary>
-    /// <param name="entities">The collection of Salary objects to insert.</param>
-    /// <returns>The total number of rows affected.</returns>
+    /// <param name="entities"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     public async Task<int> InsertAllAsync(IEnumerable<Salary> entities) {
         int count = 0;
         foreach (var entity in entities) {
@@ -90,4 +110,5 @@ public class SalaryRepository : IRepository<Salary> {
         }
         return count;
     }
+
 }

@@ -1,33 +1,44 @@
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Generic repository interface for basic CRUD operations.
+/// 基本的なCRUD操作のためのジェネリックリポジトリインターフェース
 /// </summary>
-/// <typeparam name="T">Entity type.</typeparam>
+/// <typeparam name="T">エンティティ型</typeparam>
+/// --------------------------------------------------------------------------------
 public interface IRepository<T> {
-    /// <summary>
-    /// Gets all records from the database.
-    /// </summary>
-    /// <returns>A list of entities.</returns>
-    List<T> GetAll();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets all records from the database asynchronously.
+    /// データベースから全レコードを取得する
     /// </summary>
-    /// <returns>A list of entities.</returns>
-    Task<List<T>> GetAllAsync();
+    /// <returns>エンティティのリスト</returns>
+    /// --------------------------------------------------------------------------------
+    List<T> Select();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new record into the database.
+    /// データベースから全レコードを非同期で取得する
     /// </summary>
-    /// <param name="entity">The entity to insert.</param>
-    /// <returns>The number of rows affected.</returns>
+    /// <returns>エンティティのリスト</returns>
+    /// --------------------------------------------------------------------------------
+    Task<List<T>> SelectAsync();
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// 新しいレコードをデータベースに挿入する
+    /// </summary>
+    /// <param name="entity">挿入するエンティティ</param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     int Insert(T entity);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new record into the database asynchronously.
+    /// 新しいレコードをデータベースに非同期で挿入する
     /// </summary>
-    /// <param name="entity">The entity to insert.</param>
-    /// <returns>The number of rows affected.</returns>
+    /// <param name="entity">挿入するエンティティ</param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     Task<int> InsertAsync(T entity);
+
 }

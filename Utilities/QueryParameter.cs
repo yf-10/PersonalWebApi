@@ -2,89 +2,118 @@ using System.Data;
 using System.Collections;
 
 namespace PersonalWebApi.Utilities;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Represents a collection of QueryParameter objects for SQL commands.
+/// SQLコマンド用のQueryParameterオブジェクトのコレクションを表すクラス
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class QueryParameterCollection : IEnumerable<QueryParameter> {
-    // Internal list to store parameters
     private readonly List<QueryParameter> _parameters = [];
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new empty QueryParameterCollection.
+    /// 空のQueryParameterCollectionを初期化する
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public QueryParameterCollection() { }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new QueryParameterCollection with the specified parameters.
+    /// 指定したパラメータでQueryParameterCollectionを初期化する
     /// </summary>
-    /// <param name="parameters">The initial set of parameters.</param>
+    /// <param name="parameters">初期パラメータのセット</param>
+    /// --------------------------------------------------------------------------------
     public QueryParameterCollection(IEnumerable<QueryParameter> parameters) {
         _parameters.AddRange(parameters);
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Adds a QueryParameter to the collection.
+    /// コレクションにQueryParameterを追加する
     /// </summary>
-    /// <param name="parameter">The parameter to add.</param>
+    /// <param name="parameter">追加するパラメータ</param>
+    /// --------------------------------------------------------------------------------
     public void Add(QueryParameter parameter) => _parameters.Add(parameter);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the number of parameters in the collection.
+    /// コレクションをクリアする
     /// </summary>
+    /// --------------------------------------------------------------------------------
+    public void Clear() => _parameters.Clear();
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// コレクション内のパラメータ数を取得する
+    /// </summary>
+    /// --------------------------------------------------------------------------------
     public int Count => _parameters.Count;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the parameter at the specified index.
+    /// 指定したインデックスのパラメータを取得する
     /// </summary>
-    /// <param name="index">The zero-based index of the parameter to get.</param>
+    /// <param name="index">取得するパラメータの0始まりのインデックス</param>
+    /// --------------------------------------------------------------------------------
     public QueryParameter this[int index] => _parameters[index];
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Returns an enumerator that iterates through the collection.
+    /// コレクションを反復処理する列挙子を返す
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public IEnumerator<QueryParameter> GetEnumerator() => _parameters.GetEnumerator();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Returns an enumerator that iterates through the collection (non-generic).
+    /// コレクションを反復処理する列挙子（非ジェネリック）を返す
     /// </summary>
+    /// --------------------------------------------------------------------------------
     IEnumerator IEnumerable.GetEnumerator() => _parameters.GetEnumerator();
+
 }
 
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Represents a parameter for SQL commands (DBMS independent).
+/// SQLコマンド用のパラメータ（DBMS非依存）を表すクラス
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class QueryParameter {
+
     /// <summary>
-    /// Parameter name (e.g., "@id").
+    /// パラメータ名（例: "@id"）
     /// </summary>
     public string Name { get; }
     /// <summary>
-    /// Parameter value.
+    /// パラメータ値
     /// </summary>
     public object? Value { get; }
     /// <summary>
-    /// Parameter data type (ADO.NET standard).
+    /// パラメータのデータ型（ADO.NET標準）
     /// </summary>
     public DbType Type { get; }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new instance of the <see cref="QueryParameter"/> class.
+    /// QueryParameterの新しいインスタンスを初期化する
     /// </summary>
-    /// <param name="name">Parameter name (e.g., "@id").</param>
-    /// <param name="value">Parameter value.</param>
-    /// <param name="type">Parameter data type.</param>
+    /// <param name="name">パラメータ名（例: "@id"）</param>
+    /// <param name="value">パラメータ値</param>
+    /// <param name="type">パラメータのデータ型</param>
+    /// --------------------------------------------------------------------------------
     public QueryParameter(string name, object? value, DbType type) {
         Name = name;
         Value = value;
         Type = type;
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new instance of the <see cref="QueryParameter"/> class (type inferred from value).
+    /// QueryParameterの新しいインスタンスを初期化する（型は値から推論）
     /// </summary>
-    /// <param name="name">Parameter name (e.g., "@id").</param>
-    /// <param name="value">Parameter value.</param>
+    /// <param name="name">パラメータ名（例: "@id"）</param>
+    /// <param name="value">パラメータ値</param>
+    /// --------------------------------------------------------------------------------
     public QueryParameter(string name, object? value) {
         Name = name;
         Value = value;
@@ -101,4 +130,5 @@ public class QueryParameter {
             _ => DbType.Object
         };
     }
+
 }

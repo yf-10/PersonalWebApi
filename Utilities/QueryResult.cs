@@ -1,52 +1,66 @@
 using System.Collections;
-using System.Collections.Generic;
 
 namespace PersonalWebApi.Utilities;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Represents a collection of query result rows, where each row is a dictionary of column name and value.
+/// クエリ結果の各行（列名と値の辞書）のコレクションを表すクラス
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class QueryResult : IEnumerable<Dictionary<string, object?>> {
-    // Internal list to store rows
     private readonly List<Dictionary<string, object?>> _rows = [];
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new empty QueryResult.
+    /// 空のQueryResultを初期化する
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public QueryResult() { }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Initializes a new QueryResult with the specified rows.
+    /// 指定した行データでQueryResultを初期化する
     /// </summary>
-    /// <param name="rows">The initial set of rows.</param>
+    /// <param name="rows">初期行データのセット</param>
+    /// --------------------------------------------------------------------------------
     public QueryResult(IEnumerable<Dictionary<string, object?>> rows) {
         _rows.AddRange(rows);
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Adds a row to the result set.
+    /// 結果セットに行を追加する
     /// </summary>
-    /// <param name="row">The row to add.</param>
+    /// <param name="row">追加する行データ</param>
+    /// --------------------------------------------------------------------------------
     public void Add(Dictionary<string, object?> row) => _rows.Add(row);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the number of rows in the result set.
+    /// 結果セット内の行数を取得する
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public int Count => _rows.Count;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the row at the specified index.
+    /// 指定したインデックスの行データを取得する
     /// </summary>
-    /// <param name="index">The zero-based index of the row to get.</param>
+    /// <param name="index">取得する行の0始まりのインデックス</param>
+    /// --------------------------------------------------------------------------------
     public Dictionary<string, object?> this[int index] => _rows[index];
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Returns an enumerator that iterates through the collection.
+    /// コレクションを反復処理する列挙子を返す
     /// </summary>
+    /// --------------------------------------------------------------------------------
     public IEnumerator<Dictionary<string, object?>> GetEnumerator() => _rows.GetEnumerator();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Returns an enumerator that iterates through the collection (non-generic).
+    /// コレクションを反復処理する列挙子（非ジェネリック）を返す
     /// </summary>
+    /// --------------------------------------------------------------------------------
     IEnumerator IEnumerable.GetEnumerator() => _rows.GetEnumerator();
+
 }

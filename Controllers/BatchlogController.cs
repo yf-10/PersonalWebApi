@@ -1,131 +1,196 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+
 using PersonalWebApi.Models.Config;
 using PersonalWebApi.Models.Data;
 using PersonalWebApi.Models.Service;
-using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Controllers;
-
+/// --------------------------------------------------------------------------------
+/// <summary>
+/// バッチログコントローラー
+/// </summary>
+/// <param name="logger"></param>
+/// <param name="options"></param>
+/// --------------------------------------------------------------------------------
 [ApiController]
 [Route("api/batchlogs")]
-public class BatchlogController : BaseAuthenticatedController
-{
-    private readonly ILogger<BatchlogController> _logger;
-    private readonly IOptions<AppSettings> _options;
+public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnapshot<AppSettings> options) : BaseAuthenticatedController(logger, options) {
 
-    public BatchlogController(ILogger<BatchlogController> logger, IOptions<AppSettings> options)
-        : base(logger, options)
-    {
-        _logger = logger;
-        _options = options;
-    }
-
-    // [GET] /api/batchlogs/{uuid?}
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチログ取得：全件 <br/>
+    /// [GET] /api/batchlogs <br/>
+    /// </summary>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
     [HttpGet]
     [Authorize]
-    [Route("{uuid?}")]
-    public IActionResult GetBatchlogs(string? uuid, [FromQuery] string? keyword, [FromQuery] string? status)
-    {
-        try
-        {
-            var service = new BatchlogService(_options);
-            var batchlogs = service.GetBatchlogs(uuid, keyword, status);
-            return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlogs retrieved successfully.", batchlogs));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while retrieving batchlogs.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+    [Route("")]
+    public IActionResult GetAll() {
+        try {
+            var batchlogService = new BatchlogService(_logger, _options);
+            var batchlogs = batchlogService.GetAll();
+            return Ok(new ApiResponse<List<Batchlog>>(ApiResponseStatus.Success, "Batchlogs retrieved successfully.", batchlogs));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "An error occurred while retrieving data.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
 
-    // [POST] /api/batchlogs/begin
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチログ取得：バッチ実行識別子指定 <br/>
+    /// [GET] /api/batchlogs/{uuid} <br/>
+    /// </summary>
+    /// <param name="uuid"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    [HttpGet]
+    [Authorize]
+    [Route("{uuid}")]
+    public IActionResult Get(string uuid) {
+        try {
+            if (string.IsNullOrEmpty(uuid))
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, $"{nameof(uuid)} is required.", null));
+            var batchlogService = new BatchlogService(_logger, _options);
+            var batchlog = batchlogService.Get(uuid)
+                ?? throw new KeyNotFoundException($"Batchlog with UUID '{uuid}' not found.");
+            return Ok(new ApiResponse<Batchlog>(ApiResponseStatus.Success, "Batchlogs retrieved successfully.", batchlog));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "An error occurred while retrieving data.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+        }
+    }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチログ取得：条件指定検索 <br/>
+    /// [GET] /api/batchlogs/search <br/>
+    /// </summary>
+    /// <param name="keyword"></param>
+    /// <param name="status"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    [HttpGet]
+    [Authorize]
+    [Route("search")]
+    public IActionResult Search([FromQuery] string? keyword, [FromQuery] string? status) {
+        try {
+            var batchlogService = new BatchlogService(_logger, _options);
+            var batchlogs = batchlogService.Search(keyword, status);
+            return Ok(new ApiResponse<List<Batchlog>>(ApiResponseStatus.Success, "Batchlogs retrieved successfully.", batchlogs));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "An error occurred while retrieving data.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+        }
+    }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチ開始ログ登録 <br/>
+    /// [POST] /api/batchlogs/begin <br/>
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
     [HttpPost]
     [Authorize]
     [Route("begin")]
-    public IActionResult BeginBatchlog([FromBody] BatchlogBeginRequest request)
-    {
-        try
-        {
-            var service = new BatchlogService(_options);
-            var uuid = service.BeginBatchlog(request.ProgramId, request.ProgramName, request.UserName);
-            var batchlogs = service.GetBatchlogs(uuid, null, null);
-            return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog started.", batchlogs));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while beginning batchlog.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+    public IActionResult Begin([FromBody] BatchlogBeginRequest? request) {
+        try {
+            if (request == null)
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, "Request body is required.", null));
+            if (string.IsNullOrEmpty(request.ProgramId))
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, $"{nameof(request.ProgramId)} is required.", null));
+            var batchlogService = new BatchlogService(_logger, _options);
+            var uuid = batchlogService.Begin(request.ProgramId, request.ProgramName, request.UserName);
+            var batchlog = batchlogService.Get(uuid);
+            return Ok(new ApiResponse<Batchlog>(ApiResponseStatus.Success, "Batchlog started.", batchlog));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "Exception occured.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
 
-    // [POST] /api/batchlogs/{uuid}/complete
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチログ完了 <br/>
+    /// [POST] /api/batchlogs/{uuid}/complete <br/>
+    /// </summary>
+    /// <param name="uuid"></param>
+    /// <param name="userName"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
     [HttpPost]
     [Authorize]
     [Route("{uuid}/complete")]
-    public IActionResult CompleteBatchlog(string uuid, [FromQuery] string? userName)
-    {
-        try
-        {
-            var service = new BatchlogService(_options);
-            service.CompleteBatchlog(uuid, userName);
-            var batchlogs = service.GetBatchlogs(uuid, null, null);
-            return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog completed.", batchlogs));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while completing batchlog.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+    public IActionResult Complete(string uuid, [FromQuery] string? userName) {
+        try {
+            if (string.IsNullOrEmpty(uuid))
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, $"{nameof(uuid)} is required.", null));
+            var batchlogService = new BatchlogService(_logger, _options);
+            batchlogService.Complete(uuid, userName);
+            var batchlog = batchlogService.Get(uuid);
+            return Ok(new ApiResponse<Batchlog>(ApiResponseStatus.Success, "Batchlog completed.", batchlog));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "Exception occured.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
 
-    // [POST] /api/batchlogs/{uuid}/abort
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチログ中止 <br/>
+    /// [POST] /api/batchlogs/{uuid}/abort <br/>
+    /// </summary>
+    /// <param name="uuid"></param>
+    /// <param name="userName"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
     [HttpPost]
     [Authorize]
     [Route("{uuid}/abort")]
-    public IActionResult AbortBatchlog(string uuid, [FromQuery] string? userName)
-    {
-        try
-        {
-            var service = new BatchlogService(_options);
-            service.AbortBatchlog(uuid, userName);
-            var batchlogs = service.GetBatchlogs(uuid, null, null);
-            return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog aborted.", batchlogs));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while aborting batchlog.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+    public IActionResult Abort(string uuid, [FromQuery] string? userName) {
+        try {
+            if (string.IsNullOrEmpty(uuid))
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, $"{nameof(uuid)} is required.", null));
+            var batchlogService = new BatchlogService(_logger, _options);
+            batchlogService.Abort(uuid, userName);
+            var batchlog = batchlogService.Get(uuid);
+            return Ok(new ApiResponse<Batchlog>(ApiResponseStatus.Success, "Batchlog completed.", batchlog));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "Exception occured.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
 
-    // [POST] /api/batchlogs/log
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// バッチログ詳細追加 <br/>
+    /// [POST] /api/batchlogs/log <br/>
+    /// </summary>
+    /// <param name="detail"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
     [HttpPost]
     [Authorize]
     [Route("log")]
-    public IActionResult AddBatchlogDetail([FromBody] BatchlogDetail detail, [FromQuery] string? userName)
-    {
-        try
-        {
-            var service = new BatchlogService(_options);
-            service.AddBatchlogLog(detail, userName);
-            var batchlogs = service.GetBatchlogs(detail.Uuid, null, null);
-            return Ok(new ApiResponseJson<List<BatchlogMain>>(ApiResponseStatus.Success, "Batchlog detail added.", batchlogs));
-        }
-        catch (Exception ex)
-        {
+    public IActionResult AddLog([FromBody] BatchlogAddRequest? detail) {
+        try {
+            if (detail == null)
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, "Request body is required.", null));
+            if (string.IsNullOrEmpty(detail.Uuid))
+                return BadRequest(new ApiResponse<string>(ApiResponseStatus.Error, $"{nameof(detail.Uuid)} is required.", null));
+            var batchlogService = new BatchlogService(_logger, _options);
+            batchlogService.AddDetailLog(detail.Uuid, detail.LogMsg, detail.UserName);
+            var batchlog = batchlogService.Get(detail.Uuid);
+            return Ok(new ApiResponse<Batchlog>(ApiResponseStatus.Success, "Batchlog detail added.", batchlog));
+        } catch (Exception ex) {
             _logger.LogError(ex, "An error occurred while adding batchlog detail.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
-}
 
-// 必要に応じてリクエスト用DTOを追加
-public class BatchlogBeginRequest
-{
-    public string ProgramId { get; set; } = string.Empty;
-    public string ProgramName { get; set; } = string.Empty;
-    public string? UserName { get; set; }
 }

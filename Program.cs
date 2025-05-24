@@ -31,7 +31,7 @@ builder.Services.AddSwaggerGen(c => {
 });
 
 // Register the DB worker service
-builder.Services.AddSingleton<PersonalWebApi.Utilities.PostgresDbWorker>();
+builder.Services.AddSingleton<PersonalWebApi.Utilities.PostgresManager>();
 
 // Register CORS policy
 builder.Services.AddCors(options => {

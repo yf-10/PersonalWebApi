@@ -1,28 +1,34 @@
 using PersonalWebApi.Models.Data;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Mapper class for converting a database row to a BatchlogMain entity.
-/// Implements IEntityMapper for BatchlogMain.
+/// データベースの行データをエンティティに変換するマッパークラス
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class BatchlogMainMapper : IEntityMapper<BatchlogMain> {
+
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Maps a dictionary row to a BatchlogMain object.
+    /// 行データ（辞書）をエンティティに変換する
     /// </summary>
-    /// <param name="row">The dictionary representing a row from the database.</param>
-    /// <returns>A BatchlogMain object.</returns>
-    /// <exception cref="InvalidCastException">Thrown if required fields are missing or null.</exception>
-    public BatchlogMain MapRowToObject(Dictionary<string, object?> row) {
+    /// <param name="row">データベースから取得した1行分の辞書</param>
+    /// <returns>エンティティ</returns>
+    /// <exception cref="InvalidCastException">必須フィールドがnullの場合にスロー</exception>
+    /// --------------------------------------------------------------------------------
+    public BatchlogMain MapRowToEntity(Dictionary<string, object?> row) {
         return new BatchlogMain(
             row["uuid"] as string ?? throw new InvalidCastException("uuid is null"),
-            row["status"] as string ?? throw new InvalidCastException("status is null"),
+            Enum.TryParse<BatchlogStatus>(row["status"] as string ?? throw new InvalidCastException("status is null"), out var status) ? status : throw new InvalidCastException("Invalid status value"),
             row["program_id"] as string ?? throw new InvalidCastException("program_id is null"),
-            row["program_name"] as string ?? throw new InvalidCastException("program_name is null"),
+            row["program_name"] as string,
             row["start_time"] as DateTime?,
             row["end_time"] as DateTime?,
-            [], // Details are not loaded in this repository
-            "TEST"
+            row["created_by"] as string ?? throw new InvalidCastException("created_by is null"),
+            row["updated_by"] as string ?? throw new InvalidCastException("updated_by is null"),
+            row["created_at"] as DateTime?,
+            row["updated_at"] as DateTime?
         );
     }
+
 }

@@ -2,187 +2,172 @@ using PersonalWebApi.Models.Data;
 using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Repository for accessing BatchlogMain data in the database.
+/// リポジトリクラス
 /// </summary>
-/// <remarks>
-/// Constructor for BatchlogMainRepository with custom SQL helper and mapper.
-/// </remarks>
-/// <param name="worker">The PostgresDbWorker instance for database operations.</param>
-/// <param name="sqlHelper">The SQL helper for BatchlogMain.</param>
-/// <param name="mapper">The mapper for BatchlogMain.</param>
-public class BatchlogMainRepository(PostgresDbWorker worker, ISqlHelper<BatchlogMain> sqlHelper, IEntityMapper<BatchlogMain> mapper) : IRepository<BatchlogMain> {
-    private readonly PostgresDbWorker _worker = worker;
-    private readonly ISqlHelper<BatchlogMain> _sqlHelper = sqlHelper;
-    private readonly IEntityMapper<BatchlogMain> _mapper = mapper;
+/// <param name="manager"></param>
+/// --------------------------------------------------------------------------------
+public class BatchlogMainRepository(PostgresManager manager) : BaseRepository<BatchlogMain>(manager), IRepository<BatchlogMain> {
+    private readonly BatchlogMainSqlHelper _helper = new();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Constructor for BatchlogMainRepository.
+    /// エンティティマッパーを生成する
     /// </summary>
-    /// <param name="worker">The PostgresDbWorker instance for database operations.</param>
-    public BatchlogMainRepository(PostgresDbWorker worker)
-        : this(worker, new BatchlogMainSqlHelper(), new BatchlogMainMapper()) { }
+    /// <returns>エンティティマッパー</returns>
+    /// --------------------------------------------------------------------------------
+    protected override IEntityMapper<BatchlogMain> CreateMapper() => new BatchlogMainMapper();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Retrieves all BatchlogMain records from the database.
+    /// [SELECT] 全件取得
     /// </summary>
-    /// <returns>List of BatchlogMain objects.</returns>
-    public List<BatchlogMain> GetAll() {
-        var rows = _worker.ExecuteSqlGetList(_sqlHelper.GetSelectAllSql());
-        var result = new List<BatchlogMain>();
-        foreach (var row in rows) {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public List<BatchlogMain> Select() {
+        var rows = _manager.ExecuteSqlGetList(_helper.GetSelectSql());
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Asynchronously retrieves all BatchlogMain records from the database.
+    /// [SELECT] 全件取得（非同期）
     /// </summary>
-    /// <returns>List of BatchlogMain objects.</returns>
-    public async Task<List<BatchlogMain>> GetAllAsync() {
-        var rows = await _worker.ExecuteSqlGetListAsync(_sqlHelper.GetSelectAllSql());
-        var result = new List<BatchlogMain>();
-        foreach (var row in rows) {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public async Task<List<BatchlogMain>> SelectAsync() {
+        var rows = await _manager.ExecuteSqlGetListAsync(_helper.GetSelectSql());
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Retrieves BatchlogMain records by condition (uuid, keyword, status).
+    /// [SELECT] 条件指定で取得する
     /// </summary>
-    /// <param name="uuid">The UUID to filter by (optional).</param>
-    /// <param name="keyword">A keyword to search in ProgramName or other fields (optional).</param>
-    /// <param name="status">The status to filter by (optional).</param>
-    /// <returns>List of BatchlogMain objects matching the condition.</returns>
-    public List<BatchlogMain> GetByCondition(string? uuid, string? keyword, string? status)
-    {
-        // ベースSQL
-        var sql = _sqlHelper.GetSelectAllSql();
-        var prms = new Dictionary<string, object>();
-
+    /// <param name="keyword">プログラム名等のキーワード検索（任意）</param>
+    /// <param name="status">ステータスで絞り込み（任意）</param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public List<BatchlogMain> Select(string? keyword, string? status) {
+        var sql = _helper.GetSelectSql();
+        InitializeParameters();
         var whereList = new List<string>();
-        if (!string.IsNullOrEmpty(uuid))
-        {
-            whereList.Add("uuid = @uuid");
-            prms.Add("uuid", uuid);
-        }
-        if (!string.IsNullOrEmpty(keyword))
-        {
-            // ProgramNameに対してLIKE検索（必要に応じて他のカラムも追加）
+        if (!string.IsNullOrEmpty(keyword)) {
             whereList.Add("program_name ILIKE @keyword");
-            prms.Add("keyword", $"%{keyword}%");
+            AddParameter("keyword", $"%{keyword}%");
         }
-        if (!string.IsNullOrEmpty(status))
-        {
+        if (!string.IsNullOrEmpty(status)) {
             whereList.Add("status = @status");
-            prms.Add("status", status);
+            AddParameter("status", status);
         }
-
-        if (whereList.Count > 0)
-        {
+        if (whereList.Count > 0) {
             sql += " WHERE " + string.Join(" AND ", whereList);
         }
-
-        var paramList = prms.Select(kv => new QueryParameter(kv.Key, kv.Value)).ToList();
-        var rows = _worker.ExecuteSqlGetList(sql, [.. paramList]);
-        var result = new List<BatchlogMain>();
-        foreach (var row in rows)
-        {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+        var rows = _manager.ExecuteSqlGetList(sql, _parameters);
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Retrieves a BatchlogMain record by UUID.
+    /// [SELECT] バッチ実行識別子指定で取得
     /// </summary>
-    /// <param name="uuid">The UUID of the BatchlogMain record.</param>
-    /// <returns>The BatchlogMain object if found; otherwise, null.</returns>
-    public BatchlogMain? GetByUuid(string uuid) {
-        var prms = _sqlHelper.ToIdParameterCollection(uuid);
-        var rows = _worker.ExecuteSqlGetList(_sqlHelper.GetSelectByIdSql(), prms);
-        foreach (var row in rows) {
-            return _mapper.MapRowToObject(row);
-        }
-        return null;
+    /// <param name="uuid">バッチ実行識別子</param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public BatchlogMain? Select(string uuid) {
+        InitializeParameters();
+        AddParameter("uuid", uuid);
+        var rows = _manager.ExecuteSqlGetList(_helper.GetSelectByIdSql(), _parameters);
+        return rows.Count > 0 ? _mapper.MapRowToEntity(rows[0]) : null;
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Asynchronously retrieves a BatchlogMain record by UUID.
+    /// [SELECT] バッチ実行識別子指定で取得（非同期）
     /// </summary>
-    /// <param name="uuid">The UUID of the BatchlogMain record.</param>
-    /// <returns>The BatchlogMain object if found; otherwise, null.</returns>
-    public async Task<BatchlogMain?> GetByUuidAsync(string uuid) {
-        var prms = _sqlHelper.ToIdParameterCollection(uuid);
-        var rows = await _worker.ExecuteSqlGetListAsync(_sqlHelper.GetSelectByIdSql(), prms);
-        foreach (var row in rows) {
-            return _mapper.MapRowToObject(row);
-        }
-        return null;
+    /// <param name="uuid">バッチ実行識別子</param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public async Task<BatchlogMain?> SelectAsync(string uuid) {
+        InitializeParameters();
+        AddParameter("uuid", uuid);
+        var rows = await _manager.ExecuteSqlGetListAsync(_helper.GetSelectByIdSql(), _parameters);
+        return rows.Count > 0 ? _mapper.MapRowToEntity(rows[0]) : null;
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new BatchlogMain record into the database.
+    /// [INSERT] 新規登録
     /// </summary>
-    /// <param name="log">The BatchlogMain object to insert.</param>
-    /// <returns>The number of rows affected.</returns>
-    public int Insert(BatchlogMain log) {
-        return _worker.ExecuteSql(_sqlHelper.GetInsertSql(), _sqlHelper.ToParameterCollection(log));
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public int Insert(BatchlogMain entity) {
+        return _manager.ExecuteSql(_helper.GetInsertSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Asynchronously inserts a new BatchlogMain record into the database.
+    /// [INSERT] 新規登録（非同期）
     /// </summary>
-    /// <param name="log">The BatchlogMain object to insert.</param>
-    /// <returns>The number of rows affected.</returns>
-    public Task<int> InsertAsync(BatchlogMain log) {
-        return _worker.ExecuteSqlAsync(_sqlHelper.GetInsertSql(), _sqlHelper.ToParameterCollection(log));
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public Task<int> InsertAsync(BatchlogMain entity) {
+        return _manager.ExecuteSqlAsync(_helper.GetInsertSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Updates an existing BatchlogMain record in the database.
+    /// [UPDATE] 既存レコード更新
     /// </summary>
-    /// <param name="log">The BatchlogMain object to update.</param>
-    /// <returns>The number of rows affected.</returns>
-    public int Update(BatchlogMain log) {
-        return _worker.ExecuteSql(_sqlHelper.GetUpdateSql(), _sqlHelper.ToParameterCollection(log));
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public int Update(BatchlogMain entity) {
+        return _manager.ExecuteSql(_helper.GetUpdateSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Asynchronously updates an existing BatchlogMain record in the database.
+    /// [UPDATE] 既存レコード更新
     /// </summary>
-    /// <param name="log">The BatchlogMain object to update.</param>
-    /// <returns>The number of rows affected.</returns>
-    public Task<int> UpdateAsync(BatchlogMain log) {
-        return _worker.ExecuteSqlAsync(_sqlHelper.GetUpdateSql(), _sqlHelper.ToParameterCollection(log));
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public Task<int> UpdateAsync(BatchlogMain entity) {
+        return _manager.ExecuteSqlAsync(_helper.GetUpdateSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts multiple BatchlogMain records into the database.
+    /// [INSERT] 新規登録
     /// </summary>
-    /// <param name="logs">The collection of BatchlogMain objects to insert.</param>
-    /// <returns>The total number of rows affected.</returns>
-    public int InsertAll(IEnumerable<BatchlogMain> logs) {
+    /// <param name="entities"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public int InsertAll(IEnumerable<BatchlogMain> entities) {
         int count = 0;
-        foreach (var log in logs) {
-            count += Insert(log);
+        foreach (var entity in entities) {
+            count += Insert(entity);
         }
         return count;
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Asynchronously inserts multiple BatchlogMain records into the database.
+    /// [INSERT] 新規登録（非同期）
     /// </summary>
-    /// <param name="logs">The collection of BatchlogMain objects to insert.</param>
-    /// <returns>The total number of rows affected.</returns>
-    public async Task<int> InsertAllAsync(IEnumerable<BatchlogMain> logs) {
+    /// <param name="entities"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public async Task<int> InsertAllAsync(IEnumerable<BatchlogMain> entities) {
         int count = 0;
-        foreach (var log in logs) {
-            count += await InsertAsync(log);
+        foreach (var entity in entities) {
+            count += await InsertAsync(entity);
         }
         return count;
     }
+
 }

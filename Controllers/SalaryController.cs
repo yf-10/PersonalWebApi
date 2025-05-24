@@ -9,59 +9,54 @@ namespace PersonalWebApi.Controllers;
 
 [ApiController]
 [Route("api/salaries")]
-public class SalaryController : BaseAuthenticatedController
-{
-    private readonly ILogger<SalaryController> _logger;
-    private readonly IOptions<AppSettings> _options;
+public class SalaryController(ILogger<BatchlogController> logger, IOptionsSnapshot<AppSettings> options) : BaseAuthenticatedController(logger, options) {
 
-    public SalaryController(ILogger<SalaryController> logger, IOptions<AppSettings> options)
-        : base(logger, options)
-    {
-        _logger = logger;
-        _options = options;
-    }
-
-    [Route("add")]
-    [HttpPost]
-    public IActionResult AddSalaries([FromBody] List<Salary> salaries)
-    {
-        try
-        {
-            var service = new SalaryService(_options);
-            int count = service.RegisterSalariesWithTransaction(salaries);
-            return Ok(new ApiResponseJson<int>(ApiResponseStatus.Success, $"{count} salaries registered.", count));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while registering salaries.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
-        }
-    }
-
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// 給与情報の取得 <br/>
+    /// [GET] /api/salaries <br/>
+    /// </summary>
+    /// <param name="startYm"></param>
+    /// <param name="endYm"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
     [Route("")]
     [HttpGet]
-    public IActionResult GetSalaries([FromQuery] string? from, [FromQuery] string? to)
-    {
-        try
-        {
-            var service = new SalaryService(_options);
-
-            // 期間指定がある場合はフィルタリング
-            if (!string.IsNullOrEmpty(from) || !string.IsNullOrEmpty(to))
-            {
-                var salaries = service.GetSalariesByPeriod(from, to);
-                return Ok(new ApiResponseJson<List<Salary>>(ApiResponseStatus.Success, "Salaries retrieved successfully.", salaries));
+    public IActionResult Get([FromQuery] string? startYm, [FromQuery] string? endYm) {
+        try {
+            var salaryService = new SalaryService(_logger, _options);
+            if (!string.IsNullOrEmpty(startYm) || !string.IsNullOrEmpty(endYm)) {
+                var salaries = salaryService.GetByMonthBetween(startYm, endYm);
+                return Ok(new ApiResponse<List<Salary>>(ApiResponseStatus.Success, "Salaries retrieved successfully.", salaries));
+            } else {
+                var salaries = salaryService.GetAll();
+                return Ok(new ApiResponse<List<Salary>>(ApiResponseStatus.Success, "Salaries retrieved successfully.", salaries));
             }
-            else
-            {
-                var salaries = service.GetAllSalaries();
-                return Ok(new ApiResponseJson<List<Salary>>(ApiResponseStatus.Success, "Salaries retrieved successfully.", salaries));
-            }
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             _logger.LogError(ex, "An error occurred while retrieving salaries.");
-            return StatusCode(500, new ApiResponseJson<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
         }
     }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// 給与情報の登録 <br/>
+    /// [POST] /api/salaries/add <br/>
+    /// </summary>
+    /// <param name="salaries"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    [Route("add")]
+    [HttpPost]
+    public IActionResult Add([FromBody] List<Salary> salaries) {
+        try {
+            var salaryService = new SalaryService(_logger, _options);
+            int count = salaryService.Insert(salaries);
+            return Ok(new ApiResponse<int>(ApiResponseStatus.Success, $"{count} salaries registered.", count));
+        } catch (Exception ex) {
+            _logger.LogError(ex, "An error occurred while registering salaries.");
+            return StatusCode(500, new ApiResponse<string>(ApiResponseStatus.Error, "Internal server error: " + ex.Message, null));
+        }
+    }
+
 }

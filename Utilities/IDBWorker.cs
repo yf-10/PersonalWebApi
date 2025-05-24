@@ -1,73 +1,90 @@
 namespace PersonalWebApi.Utilities;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Interface for database worker operations.
-/// Provides methods for executing SQL commands, transactions, and retrieving query results.
+/// データベース操作用ワーカーのインターフェース
+/// SQLコマンドの実行、トランザクション、クエリ結果の取得などのメソッドを提供する
 /// </summary>
+/// --------------------------------------------------------------------------------
 public interface IDbWorker {
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL command (such as INSERT, UPDATE, DELETE) synchronously with parameters.
+    /// パラメータ付きでSQLコマンド（INSERT, UPDATE, DELETEなど）を同期実行する
     /// </summary>
-    /// <param name="sql">The SQL command to execute.</param>
-    /// <param name="prms">The collection of parameters for the SQL command. Can be null if no parameters are needed.</param>
-    /// <returns>The number of rows affected.</returns>
+    /// <param name="sql">実行するSQLコマンド</param>
+    /// <param name="prms">SQLコマンドのパラメータコレクション。不要な場合はnull可</param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     int ExecuteSql(string sql, QueryParameterCollection? prms);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL command (such as INSERT, UPDATE, DELETE) synchronously without parameters.
+    /// パラメータなしでSQLコマンド（INSERT, UPDATE, DELETEなど）を同期実行する
     /// </summary>
-    /// <param name="sql">The SQL command to execute.</param>
-    /// <returns>The number of rows affected.</returns>
+    /// <param name="sql">実行するSQLコマンド</param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     int ExecuteSql(string sql);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL command (such as INSERT, UPDATE, DELETE) asynchronously with parameters.
+    /// パラメータ付きでSQLコマンド（INSERT, UPDATE, DELETEなど）を非同期実行する
     /// </summary>
-    /// <param name="sql">The SQL command to execute.</param>
-    /// <param name="prms">The collection of parameters for the SQL command. Can be null if no parameters are needed.</param>
-    /// <returns>A task representing the asynchronous operation, with the number of rows affected as result.</returns>
+    /// <param name="sql">実行するSQLコマンド</param>
+    /// <param name="prms">SQLコマンドのパラメータコレクション。不要な場合はnull可</param>
+    /// <returns>非同期操作のタスク。結果は影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     Task<int> ExecuteSqlAsync(string sql, QueryParameterCollection? prms);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL command (such as INSERT, UPDATE, DELETE) asynchronously without parameters.
+    /// パラメータなしでSQLコマンド（INSERT, UPDATE, DELETEなど）を非同期実行する
     /// </summary>
-    /// <param name="sql">The SQL command to execute.</param>
-    /// <returns>A task representing the asynchronous operation, with the number of rows affected as result.</returns>
+    /// <param name="sql">実行するSQLコマンド</param>
+    /// <returns>非同期操作のタスク。結果は影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     Task<int> ExecuteSqlAsync(string sql);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL query synchronously and returns the result as a QueryResult.
-    /// Each row is represented as a dictionary with column names as keys and column values as values.
+    /// パラメータ付きでSQLクエリを同期実行し、結果をQueryResultとして返す
+    /// 各行は列名と値の辞書で表現される
     /// </summary>
-    /// <param name="sql">The SQL query to execute.</param>
-    /// <param name="prms">The collection of parameters for the SQL query. Can be null if no parameters are needed.</param>
-    /// <returns>A QueryResult representing the result set.</returns>
+    /// <param name="sql">実行するSQLクエリ</param>
+    /// <param name="prms">SQLクエリのパラメータコレクション。不要な場合はnull可</param>
+    /// <returns>結果セット（QueryResult）</returns>
+    /// --------------------------------------------------------------------------------
     QueryResult ExecuteSqlGetList(string sql, QueryParameterCollection? prms);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL query synchronously and returns the result as a QueryResult.
-    /// Each row is represented as a dictionary with column names as keys and column values as values.
+    /// パラメータなしでSQLクエリを同期実行し、結果をQueryResultとして返す
+    /// 各行は列名と値の辞書で表現される
     /// </summary>
-    /// <param name="sql">The SQL query to execute.</param>
-    /// <returns>A QueryResult representing the result set.</returns>
+    /// <param name="sql">実行するSQLクエリ</param>
+    /// <returns>結果セット（QueryResult）</returns>
+    /// --------------------------------------------------------------------------------
     QueryResult ExecuteSqlGetList(string sql);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL query asynchronously and returns the result as a QueryResult.
-    /// Each row is represented as a dictionary with column names as keys and column values as values.
+    /// パラメータ付きでSQLクエリを非同期実行し、結果をQueryResultとして返す
+    /// 各行は列名と値の辞書で表現される
     /// </summary>
-    /// <param name="sql">The SQL query to execute.</param>
-    /// <param name="prms">The collection of parameters for the SQL query. Can be null if no parameters are needed.</param>
-    /// <returns>A task representing the asynchronous operation, with a QueryResult representing the result set.</returns>
+    /// <param name="sql">実行するSQLクエリ</param>
+    /// <param name="prms">SQLクエリのパラメータコレクション。不要な場合はnull可</param>
+    /// <returns>非同期操作のタスク。結果はQueryResult</returns>
+    /// --------------------------------------------------------------------------------
     Task<QueryResult> ExecuteSqlGetListAsync(string sql, QueryParameterCollection? prms);
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Executes a SQL query asynchronously and returns the result as a QueryResult.
-    /// Each row is represented as a dictionary with column names as keys and column values as values.
+    /// パラメータなしでSQLクエリを非同期実行し、結果をQueryResultとして返す
+    /// 各行は列名と値の辞書で表現される
     /// </summary>
-    /// <param name="sql">The SQL query to execute.</param>
-    /// <returns>A task representing the asynchronous operation, with a QueryResult representing the result set.</returns>
+    /// <param name="sql">実行するSQLクエリ</param>
+    /// <returns>非同期操作のタスク。結果はQueryResult</returns>
+    /// --------------------------------------------------------------------------------
     Task<QueryResult> ExecuteSqlGetListAsync(string sql);
 
 }

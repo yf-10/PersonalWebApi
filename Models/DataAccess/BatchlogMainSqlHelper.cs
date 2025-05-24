@@ -2,97 +2,135 @@ using PersonalWebApi.Models.Data;
 using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// SQL and parameter generation helper for BatchlogMainRepository.
-/// Implements ISqlHelper for BatchlogMain entity.
+/// SQL文およびパラメータ生成ヘルパークラス
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class BatchlogMainSqlHelper : ISqlHelper<BatchlogMain> {
-    // Table name for BatchlogMain
     private const string TableName = "batchlog_main";
-
-    // SQL columns used in SELECT statements
-    private const string SelectColumns = @"
+    private const string SelectColumns = """
         uuid,
         status,
         program_id,
         program_name,
         start_time,
-        end_time";
+        end_time,
+        created_by,
+        updated_by,
+        created_at,
+        updated_at
+        """;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to select all BatchlogMain records.
+    /// [SELECT] 全件取得
     /// </summary>
-    public string GetSelectAllSql() =>
-        $@"SELECT {SelectColumns}
-            FROM {TableName}
-            ORDER BY uuid";
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    public string GetSelectSql() =>
+        $"""
+        SELECT
+            {SelectColumns}
+        FROM
+            {TableName}
+        ORDER BY
+            uuid asc
+        """;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to select a BatchlogMain record by UUID.
+    /// [SELECT] 主キー指定で取得
     /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     public string GetSelectByIdSql() =>
-        $@"SELECT {SelectColumns}
-            FROM {TableName}
-            WHERE uuid = @uuid";
+        $"""
+        SELECT
+            {SelectColumns}
+        FROM
+            {TableName}
+        WHERE
+            uuid = @uuid
+        """;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to insert a new BatchlogMain record.
+    /// [INSERT] 新規登録
     /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     public string GetInsertSql() =>
-        $@"INSERT INTO {TableName} (
-                uuid,
-                status,
-                program_id,
-                program_name,
-                start_time,
-                end_time
-            ) VALUES (
-                @uuid,
-                @status,
-                @program_id,
-                @program_name,
-                @start_time,
-                @end_time
-            )";
+        $"""
+        INSERT INTO
+            {TableName}
+        (
+            uuid,
+            status,
+            program_id,
+            program_name,
+            start_time,
+            end_time,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at
+        )
+        VALUES
+        (
+            @uuid,
+            @status,
+            @program_id,
+            @program_name,
+            @start_time,
+            @end_time,
+            @created_by,
+            @updated_by,
+            NOW(),
+            NOW()
+        )
+        """;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to update an existing BatchlogMain record.
+    /// [UPDATE] 既存レコード更新
     /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     public string GetUpdateSql() =>
-        $@"UPDATE {TableName} SET
-                status = @status,
-                program_id = @program_id,
-                program_name = @program_name,
-                start_time = @start_time,
-                end_time = @end_time
-            WHERE
-                uuid = @uuid";
+        $"""
+        UPDATE
+            {TableName}
+        SET
+            status = @status,
+            program_id = @program_id,
+            program_name = @program_name,
+            start_time = @start_time,
+            end_time = @end_time,
+            updated_by = @updated_by,
+            updated_at = NOW()
+        WHERE
+            uuid = @uuid
+        """;
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Converts a BatchlogMain object to a QueryParameterCollection for SQL operations.
+    /// [INSERT/UPDATE] SQLパラメータコレクションに変換する
     /// </summary>
-    /// <param name="log">The BatchlogMain object.</param>
-    /// <returns>A QueryParameterCollection with parameters for SQL.</returns>
+    /// <param name="entity">BatchlogDetailエンティティ</param>
+    /// <returns>パラメータコレクション</returns>
+    /// --------------------------------------------------------------------------------
     public QueryParameterCollection ToParameterCollection(BatchlogMain log) {
         return [
             new("@uuid", log.Uuid),
-            new("@status", log.Status),
+            new("@status", log.Status.ToString()),
             new("@program_id", log.ProgramId),
             new("@program_name", log.ProgramName),
             new("@start_time", log.StartTime),
-            new("@end_time", log.EndTime)
+            new("@end_time", log.EndTime),
+            new("@created_by", log.CreatedBy),
+            new("@updated_by", log.UpdatedBy)
         ];
     }
 
-    /// <summary>
-    /// Converts an ID value to a QueryParameterCollection for SQL operations.
-    /// </summary>
-    /// <param name="id">The ID value (UUID).</param>
-    /// <returns>A QueryParameterCollection with the ID parameter.</returns>
-    public QueryParameterCollection ToIdParameterCollection(object id) {
-        return [
-            new("@uuid", id)
-        ];
-    }
 }

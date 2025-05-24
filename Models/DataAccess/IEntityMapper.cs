@@ -1,14 +1,19 @@
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Generic interface for mapping a database row (Dictionary) to an entity.
+/// データベースのレコードをエンティティにマッピングするためのジェネリックインターフェース
 /// </summary>
-/// <typeparam name="T">Entity type.</typeparam>
+/// <typeparam name="T">エンティティ型</typeparam>
+/// --------------------------------------------------------------------------------
 public interface IEntityMapper<T> {
+
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Maps a dictionary row to an entity object.
+    /// 辞書形式の行データをエンティティオブジェクトに変換する
     /// </summary>
-    /// <param name="row">The dictionary representing a row from the database.</param>
-    /// <returns>An entity object.</returns>
-    T MapRowToObject(Dictionary<string, object?> row);
+    /// <param name="row">データベースから取得した1行分の辞書</param>
+    /// <returns>エンティティオブジェクト</returns>
+    /// --------------------------------------------------------------------------------
+    T MapRowToEntity(Dictionary<string, object?> row);
+
 }

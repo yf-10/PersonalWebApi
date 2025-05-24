@@ -203,4 +203,5 @@ public class FileLogger(string categoryName, LogLevel minLogLevel, Channel<strin
             // チャネルが完了/破棄済みの場合は無視
         }
     }
+
 }

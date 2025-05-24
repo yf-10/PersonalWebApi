@@ -2,80 +2,154 @@ using PersonalWebApi.Models.Data;
 using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// SQL and parameter generation helper for SalaryRepository.
-/// Implements ISqlHelper for Salary entity.
+/// SQL文およびパラメータ生成ヘルパークラス
 /// </summary>
+/// --------------------------------------------------------------------------------
 public class SalarySqlHelper : ISqlHelper<Salary> {
     private const string TableName = "salary";
-    private const string SelectColumns = @"
+    private const string SelectColumns = """
         month,
         deduction,
         payment_item,
         amount,
-        currency_code";
+        currency_code,
+        created_by,
+        updated_by,
+        created_at,
+        updated_at,
+        exclusive_flag
+        """;
 
-    public string GetSelectAllSql() =>
-        $@"SELECT {SelectColumns}
-            FROM {TableName}
-            ORDER BY month desc, payment_item";
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [SELECT] 全件取得
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    public string GetSelectSql() =>
+        $"""
+        SELECT
+            {SelectColumns}
+        FROM
+            {TableName}
+        ORDER BY
+            month desc,
+            deduction asc,
+            payment_item asc
+        """;
 
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [SELECT] 主キー指定で取得
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     public string GetSelectByIdSql() =>
-        $@"SELECT {SelectColumns}
-            FROM {TableName}
-            WHERE month = @month AND payment_item = @payment_item";
+        $"""
+        SELECT
+            {SelectColumns}
+        FROM
+            {TableName}
+        WHERE
+            month = @month
+            AND deduction = @deduction
+            AND payment_item = @payment_item
+        """;
 
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [SELECT] 期間指定で取得（YYYYMM～YYYYMM）
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    public string GetSelectByMonthBetweenSql() =>
+        $"""
+        SELECT
+            {SelectColumns}
+        FROM
+            {TableName}
+        WHERE
+            month BETWEEN @start_month AND @end_month
+        """;
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [INSERT] 新規登録
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     public string GetInsertSql() =>
-        $@"INSERT INTO {TableName} (
-                month,
-                deduction,
-                payment_item,
-                amount,
-                currency_code,
-                created_by,
-                updated_by,
-                created_at,
-                updated_at,
-                exclusive_flag
-            ) VALUES (
-                @month,
-                @deduction,
-                @payment_item,
-                @amount,
-                @currency_code,
-                'test',
-                'test',
-                NOW(),
-                NOW(),
-                0
-            )";
+        $"""
+        INSERT INTO
+            {TableName}
+        (
+            month,
+            deduction,
+            payment_item,
+            amount,
+            currency_code,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            exclusive_flag
+        )
+        VALUES
+        (
+            @month,
+            @deduction,
+            @payment_item,
+            @amount,
+            @currency_code,
+            @created_by,
+            @updated_by,
+            NOW(),
+            NOW(),
+            0
+        )
+        """;
 
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [UPDATE] 既存レコード更新
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     public string GetUpdateSql() =>
-        $@"UPDATE {TableName} SET
-                deduction = @deduction,
-                amount = @amount,
-                currency_code = @currency_code
-            WHERE
-                month = @month AND payment_item = @payment_item";
+        $"""
+        UPDATE
+            {TableName}
+        SET
+            amount = @amount,
+            currency_code = @currency_code,
+            updated_by = @updated_by,
+            updated_at = NOW(),
+            exclusive_flag = exclusive_flag + 1
+        WHERE
+            month = @month
+            AND deduction = @deduction
+            AND payment_item = @payment_item
+        """;
 
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [INSERT/UPDATE] SQLパラメータコレクションに変換する
+    /// </summary>
+    /// <param name="entity">BatchlogDetailエンティティ</param>
+    /// <returns>パラメータコレクション</returns>
+    /// --------------------------------------------------------------------------------
     public QueryParameterCollection ToParameterCollection(Salary entity) {
         return [
             new("@month", entity.Month),
             new("@deduction", entity.Deduction),
             new("@payment_item", entity.PaymentItem),
             new("@amount", entity.Money.Amount),
-            new("@currency_code", entity.Money.CurrencyCode)
+            new("@currency_code", entity.Money.CurrencyCode),
+            new("@created_by", entity.CreatedBy),
+            new("@updated_by", entity.UpdatedBy)
         ];
     }
 
-    public QueryParameterCollection ToIdParameterCollection(object id) {
-        // id should be a tuple (string month, string paymentItem)
-        if (id is not ValueTuple<string, string> key)
-            throw new ArgumentException("id must be a tuple (string month, string paymentItem)");
-        return [
-            new("@month", key.Item1),
-            new("@payment_item", key.Item2)
-        ];
-    }
 }

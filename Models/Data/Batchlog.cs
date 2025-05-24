@@ -2,88 +2,140 @@ using System.Runtime.Serialization;
 
 namespace PersonalWebApi.Models.Data;
 
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Represents the main batch log entity, including its details.
+/// バッチログ
 /// </summary>
+/// --------------------------------------------------------------------------------
 [DataContract]
-public class BatchlogMain(string uuid, string status, string programId, string programName, DateTime? startTime, DateTime? endTime, List<BatchlogDetail> details, string? userName) {
-    /// <summary>
-    /// Unique identifier for the batch log.
-    /// </summary>
+public class Batchlog(BatchlogMain main, List<BatchlogDetail> details) {
     [DataMember]
-    public string Uuid { get; set; } = uuid;
-
-    /// <summary>
-    /// Status of the batch log.
-    /// </summary>
-    [DataMember]
-    public string Status { get; set; } = status;
-
-    /// <summary>
-    /// Program ID associated with the batch log.
-    /// </summary>
-    [DataMember]
-    public string ProgramId { get; set; } = programId;
-
-    /// <summary>
-    /// Program name associated with the batch log.
-    /// </summary>
-    [DataMember]
-    public string ProgramName { get; set; } = programName;
-
-    /// <summary>
-    /// Start time of the batch process.
-    /// </summary>
-    [DataMember]
-    public DateTime? StartTime { get; set; } = startTime;
-
-    /// <summary>
-    /// End time of the batch process.
-    /// </summary>
-    [DataMember]
-    public DateTime? EndTime { get; set; } = endTime;
-
-    /// <summary>
-    /// List of detail logs associated with this batch log.
-    /// </summary>
+    public BatchlogMain Main { get; set; } = main;
     [DataMember]
     public List<BatchlogDetail> Details { get; set; } = details;
-
-    /// <summary>
-    /// The user name associated with the batch log.
-    /// </summary>
-    public string? UserName { get; set; } = userName;
 }
 
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Represents a detail record for a batch log.
+/// バッチログステータス
 /// </summary>
-[DataContract]
-public class BatchlogDetail(string uuid, int id, string message, DateTime logTime, string? userName) {
+/// --------------------------------------------------------------------------------
+public enum BatchlogStatus {
     /// <summary>
-    /// The UUID of the parent batch log.
+    /// 実行中
     /// </summary>
+    Running = 0,
+    /// <summary>
+    /// 正常終了
+    /// </summary>
+    Complete = 3,
+    /// <summary>
+    /// 異常終了
+    /// </summary>
+    Abort = 9,
+    Undefined = -1
+}
+
+/// --------------------------------------------------------------------------------
+/// <summary>
+/// バッチログメイン
+/// </summary>
+/// --------------------------------------------------------------------------------
+[DataContract]
+public class BatchlogMain(
+    string uuid,
+    BatchlogStatus status,
+    string programId,
+    string? programName = "undefined",
+    DateTime? startTime = null,
+    DateTime? endTime = null,
+    string? createdBy = "unknown",
+    string? updatedBy = "unknown",
+    DateTime? createdAt = null,
+    DateTime? updatedAt = null
+) {
+    [DataMember]
+    public string Uuid { get; set; } = uuid;
+    [DataMember]
+    public BatchlogStatus Status { get; set; } = status;
+    [DataMember]
+    public string ProgramId { get; set; } = programId;
+    [DataMember]
+    public string? ProgramName { get; set; } = programName ?? "undefined";
+    [DataMember]
+    public DateTime? StartTime { get; set; } = startTime ?? DateTime.Now;
+    [DataMember]
+    public DateTime? EndTime { get; set; } = endTime;
+    [DataMember]
+    public string CreatedBy { get; set; } = createdBy ?? "unknown";
+    [DataMember]
+    public string UpdatedBy { get; set; } = updatedBy ?? "unknown";
+    [DataMember]
+    public DateTime CreatedAt { get; set; } = createdAt ?? DateTime.Now;
+    [DataMember]
+    public DateTime UpdatedAt { get; set; } = updatedAt ?? DateTime.Now;
+}
+
+/// --------------------------------------------------------------------------------
+/// <summary>
+/// バッチログ詳細
+/// </summary>
+/// --------------------------------------------------------------------------------
+[DataContract]
+public class BatchlogDetail(
+    string uuid,
+    int logNo = 0,
+    string? logMsg = null,
+    DateTime? logTime = null,
+    string? createdBy = "unknown",
+    string? updatedBy = "unknown",
+    DateTime? createdAt = null,
+    DateTime? updatedAt = null
+) {
     [DataMember]
     public string Uuid { get; private set; } = uuid;
-
-    /// <summary>
-    /// Unique identifier for the detail record.
-    /// </summary>
     [DataMember]
-    public int Id { get; private set; } = id;
-
-    /// <summary>
-    /// Message or log content for this detail.
-    /// </summary>
+    public int LogNo { get; private set; } = logNo;
     [DataMember]
-    public string Message { get; set; } = message;
-
-    /// <summary>
-    /// Log time for this detail record.
-    /// </summary>
+    public string? LogMsg { get; set; } = logMsg;
     [DataMember]
-    public DateTime LogTime { get; set; } = logTime;
-
+    public DateTime LogTime { get; set; } = logTime ?? DateTime.Now;
     [DataMember]
-    public string? UserName { get; set; } = userName;
+    public string CreatedBy { get; set; } = createdBy ?? "unknown";
+    [DataMember]
+    public string UpdatedBy { get; set; } = updatedBy ?? "unknown";
+    [DataMember]
+    public DateTime? CreatedAt { get; set; } = createdAt ?? DateTime.Now;
+    [DataMember]
+    public DateTime? UpdatedAt { get; set; } = updatedAt ?? DateTime.Now;
+}
+
+/// --------------------------------------------------------------------------------
+/// <summary>
+/// バッチログ開始リクエスト
+/// </summary>
+/// --------------------------------------------------------------------------------
+[DataContract]
+public class BatchlogBeginRequest {
+    [DataMember]
+    public string ProgramId { get; set; } = "undefined";
+    [DataMember]
+    public string? ProgramName { get; set; } = "undefined";
+    [DataMember]
+    public string? UserName { get; set; } = "unknown";
+}
+
+/// --------------------------------------------------------------------------------
+/// <summary>
+/// バッチログ追加リクエスト
+/// </summary>
+/// --------------------------------------------------------------------------------
+[DataContract]
+public class BatchlogAddRequest {
+    [DataMember]
+    public string? Uuid { get; private set; }
+    [DataMember]
+    public string? LogMsg { get; set; }
+    [DataMember]
+    public string? UserName { get; set; } = "unknown";
 }

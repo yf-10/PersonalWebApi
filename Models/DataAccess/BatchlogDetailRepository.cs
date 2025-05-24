@@ -2,65 +2,92 @@ using PersonalWebApi.Models.Data;
 using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Repository for accessing BatchlogDetail data in the database.
+/// リポジトリクラス
 /// </summary>
-public class BatchlogDetailRepository : IRepository<BatchlogDetail> {
-    private readonly PostgresDbWorker _worker;
-    private readonly ISqlHelper<BatchlogDetail> _sqlHelper;
-    private readonly IEntityMapper<BatchlogDetail> _mapper;
+/// <param name="manager"></param>
+/// --------------------------------------------------------------------------------
+public class BatchlogDetailRepository(PostgresManager manager) : BaseRepository<BatchlogDetail>(manager), IRepository<BatchlogDetail> {
+    private readonly BatchlogDetailSqlHelper _helper = new();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Constructor for BatchlogDetailRepository.
+    /// エンティティマッパーを生成する
     /// </summary>
-    public BatchlogDetailRepository(PostgresDbWorker worker)
-        : this(worker, new BatchlogDetailSqlHelper(), new BatchlogDetailMapper()) { }
+    /// <returns>エンティティマッパー</returns>
+    /// --------------------------------------------------------------------------------
+    protected override IEntityMapper<BatchlogDetail> CreateMapper() => new BatchlogDetailMapper();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Constructor for BatchlogDetailRepository with custom SQL helper and mapper.
+    /// [SELECT] 全件取得
     /// </summary>
-    public BatchlogDetailRepository(PostgresDbWorker worker, ISqlHelper<BatchlogDetail> sqlHelper, IEntityMapper<BatchlogDetail> mapper) {
-        _worker = worker;
-        _sqlHelper = sqlHelper;
-        _mapper = mapper;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public List<BatchlogDetail> Select() {
+        var rows = _manager.ExecuteSqlGetList(_helper.GetSelectSql());
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets all BatchlogDetail records from the database.
+    /// [SELECT] 全件取得（非同期）
     /// </summary>
-    public List<BatchlogDetail> GetAll() {
-        var rows = _worker.ExecuteSqlGetList(_sqlHelper.GetSelectAllSql());
-        var result = new List<BatchlogDetail>();
-        foreach (var row in rows) {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public async Task<List<BatchlogDetail>> SelectAsync() {
+        var rows = await _manager.ExecuteSqlGetListAsync(_helper.GetSelectSql());
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets all BatchlogDetail records from the database asynchronously.
+    /// [SELECT] バッチ実行識別子指定で取得
     /// </summary>
-    public async Task<List<BatchlogDetail>> GetAllAsync() {
-        var rows = await _worker.ExecuteSqlGetListAsync(_sqlHelper.GetSelectAllSql());
-        var result = new List<BatchlogDetail>();
-        foreach (var row in rows) {
-            result.Add(_mapper.MapRowToObject(row));
-        }
-        return result;
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------
+    public List<BatchlogDetail> Select(string uuid) {
+        InitializeParameters();
+        AddParameter("uuid", uuid);
+        var rows = _manager.ExecuteSqlGetList(_helper.GetSelectByUuidSql(), _parameters);
+        return [.. rows.Select(_mapper.MapRowToEntity)];
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new BatchlogDetail record into the database.
+    /// [INSERT] 新規登録
     /// </summary>
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     public int Insert(BatchlogDetail entity) {
-        return _worker.ExecuteSql(_sqlHelper.GetInsertSql(), _sqlHelper.ToParameterCollection(entity));
+        return _manager.ExecuteSql(_helper.GetInsertSql(), _helper.ToParameterCollection(entity));
     }
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Inserts a new BatchlogDetail record into the database asynchronously.
+    /// [INSERT] 新規登録（非同期）
     /// </summary>
+    /// <param name="entity"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
     public Task<int> InsertAsync(BatchlogDetail entity) {
-        return _worker.ExecuteSqlAsync(_sqlHelper.GetInsertSql(), _sqlHelper.ToParameterCollection(entity));
+        return _manager.ExecuteSqlAsync(_helper.GetInsertSql(), _helper.ToParameterCollection(entity));
     }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [SELECT] バッチ実行識別子を指定して新規ログ番号を採番する
+    /// </summary>
+    /// <param name="uuid"></param>
+    /// <returns>新規ログ番号</returns>
+    /// --------------------------------------------------------------------------------
+    public int GetNextLogNo(string uuid) {
+        InitializeParameters();
+        AddParameter("uuid", uuid);
+        var rows = _manager.ExecuteSqlGetList(_helper.GetLatestSql(), _parameters);
+        return rows.Count > 0 ? _mapper.MapRowToEntity(rows[0]).LogNo + 1 : 0;
+    }
+
 }

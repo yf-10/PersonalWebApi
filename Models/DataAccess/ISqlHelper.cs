@@ -1,47 +1,53 @@
 using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Models.DataAccess;
-
+/// --------------------------------------------------------------------------------
 /// <summary>
-/// Generic interface for SQL and parameter generation for repositories.
+/// リポジトリ用のSQL文およびパラメータ生成のためのジェネリックインターフェース
 /// </summary>
-/// <typeparam name="T">Entity type.</typeparam>
+/// <typeparam name="T">エンティティ型</typeparam>
+/// --------------------------------------------------------------------------------
 public interface ISqlHelper<T> {
-    /// <summary>
-    /// Gets the SQL statement to select all records.
-    /// </summary>
-    /// <returns>SQL string for selecting all records.</returns>
-    string GetSelectAllSql();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to select a record by its ID.
+    /// [SELECT] 全件取得
     /// </summary>
-    /// <returns>SQL string for selecting a record by ID.</returns>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    string GetSelectSql();
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [SELECT] 主キー指定で取得
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     string GetSelectByIdSql();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to insert a new record.
+    /// [INSERT] 新規登録
     /// </summary>
-    /// <returns>SQL string for inserting a new record.</returns>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     string GetInsertSql();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Gets the SQL statement to update an existing record.
+    /// [UPDATE] 既存レコード更新
     /// </summary>
-    /// <returns>SQL string for updating a record.</returns>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
     string GetUpdateSql();
 
+    /// --------------------------------------------------------------------------------
     /// <summary>
-    /// Converts an entity to a QueryParameterCollection for SQL operations.
+    /// エンティティをSQL操作用のQueryParameterCollectionに変換する
     /// </summary>
-    /// <param name="entity">The entity object.</param>
-    /// <returns>A QueryParameterCollection with parameters for SQL.</returns>
+    /// <param name="entity">エンティティオブジェクト</param>
+    /// <returns>SQL用パラメータコレクション</returns>
+    /// --------------------------------------------------------------------------------
     QueryParameterCollection ToParameterCollection(T entity);
 
-    /// <summary>
-    /// Converts an ID value to a QueryParameterCollection for SQL operations.
-    /// </summary>
-    /// <param name="id">The ID value.</param>
-    /// <returns>A QueryParameterCollection with the ID parameter.</returns>
-    QueryParameterCollection ToIdParameterCollection(object id);
 }
