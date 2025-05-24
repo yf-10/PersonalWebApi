@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
 using PersonalWebApi.Models.Config;
@@ -9,12 +10,13 @@ using PersonalWebApi.Models.Config;
 namespace PersonalWebApi.Controllers;
 /// --------------------------------------------------------------------------------
 /// <summary>
-/// 認証付きコントローラーの基底クラス
+/// コントローラー基底クラス
 /// </summary>
 /// <param name="logger">標準ロガー</param>
 /// <param name="options">アプリケーション設定オプション</param>
 /// --------------------------------------------------------------------------------
-public abstract class BaseAuthenticatedController(ILogger logger, IOptionsSnapshot<AppSettings> options) : ControllerBase, IActionFilter {
+[Authorize(AuthenticationSchemes = "ApiKey")]
+public abstract class BaseController(ILogger logger, IOptionsSnapshot<AppSettings> options) : ControllerBase, IActionFilter {
 
     /// <summary>
     /// 標準ロガー
@@ -25,11 +27,6 @@ public abstract class BaseAuthenticatedController(ILogger logger, IOptionsSnapsh
     /// アプリケーション設定オプション
     /// </summary>
     protected readonly IOptions<AppSettings> _options = options;
-
-    /// <summary>
-    /// APIキー：デフォルト値
-    /// </summary>
-    private const string DefaultApiKey = "e74c2f8a-3d92-4a67-95e2-8c874baf37db";
 
     /// <summary>
     /// 処理時間計測用のストップウォッチキー
@@ -48,12 +45,6 @@ public abstract class BaseAuthenticatedController(ILogger logger, IOptionsSnapsh
     [ApiExplorerSettings(IgnoreApi = true)]
     public void OnActionExecuting(ActionExecutingContext context) {
         _logger.LogInformation("Action {ActionName} executing...", context.ActionDescriptor.DisplayName);
-        // APIキー認証
-        if (!IsAuthenticated(context)) {
-            context.Result = new UnauthorizedResult();
-            return;
-        }
-        _logger.LogDebug("API key authentication OK.");
         // IPアドレスチェック（ローカルのみ許可）
         if (!IsValidIpAddress()) {
             context.Result = StatusCode(403, "許可されていないIPアドレスです (ローカルのみ許可)");
@@ -81,21 +72,6 @@ public abstract class BaseAuthenticatedController(ILogger logger, IOptionsSnapsh
             var msec = sw.ElapsedMilliseconds;
             _logger.LogInformation("Action executed: {ElapsedMilliseconds} ms", msec);
         }
-    }
-
-    /// --------------------------------------------------------------------------------
-    /// <summary>
-    /// APIキーを検証する
-    /// </summary>
-    /// <param name="context"></param>
-    /// <returns>true: OK / false: NG</returns>
-    /// --------------------------------------------------------------------------------
-    private static bool IsAuthenticated(ActionExecutingContext context) {
-        var apiKey = context.HttpContext.Request.Headers["X-Api-Key"].FirstOrDefault();
-        if (string.IsNullOrEmpty(apiKey) || apiKey != DefaultApiKey) {
-            return false;
-        }
-        return true;
     }
 
     /// --------------------------------------------------------------------------------

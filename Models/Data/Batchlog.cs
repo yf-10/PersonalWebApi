@@ -133,7 +133,7 @@ public class BatchlogBeginRequest {
 [DataContract]
 public class BatchlogAddRequest {
     [DataMember]
-    public string? Uuid { get; private set; }
+    public string? Uuid { get; set; }
     [DataMember]
     public string? LogMsg { get; set; }
     [DataMember]

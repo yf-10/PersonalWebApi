@@ -1,15 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using PersonalWebApi.Models.Config;
 using PersonalWebApi.Models.Data;
 using PersonalWebApi.Models.Service;
-using PersonalWebApi.Utilities;
 
 namespace PersonalWebApi.Controllers;
-
+/// --------------------------------------------------------------------------------
+/// <summary>
+/// 給与コントローラー
+/// </summary>
+/// <param name="logger"></param>
+/// <param name="options"></param>
+/// --------------------------------------------------------------------------------
 [ApiController]
 [Route("api/salaries")]
-public class SalaryController(ILogger<BatchlogController> logger, IOptionsSnapshot<AppSettings> options) : BaseAuthenticatedController(logger, options) {
+public class SalaryController(ILogger<BatchlogController> logger, IOptionsSnapshot<AppSettings> options) : BaseController(logger, options) {
 
     /// --------------------------------------------------------------------------------
     /// <summary>

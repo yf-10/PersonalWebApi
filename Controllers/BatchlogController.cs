@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
 using PersonalWebApi.Models.Config;
@@ -16,7 +15,7 @@ namespace PersonalWebApi.Controllers;
 /// --------------------------------------------------------------------------------
 [ApiController]
 [Route("api/batchlogs")]
-public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnapshot<AppSettings> options) : BaseAuthenticatedController(logger, options) {
+public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnapshot<AppSettings> options) : BaseController(logger, options) {
 
     /// --------------------------------------------------------------------------------
     /// <summary>
@@ -26,7 +25,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpGet]
-    [Authorize]
     [Route("")]
     public IActionResult GetAll() {
         try {
@@ -48,7 +46,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpGet]
-    [Authorize]
     [Route("{uuid}")]
     public IActionResult Get(string uuid) {
         try {
@@ -74,7 +71,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpGet]
-    [Authorize]
     [Route("search")]
     public IActionResult Search([FromQuery] string? keyword, [FromQuery] string? status) {
         try {
@@ -96,7 +92,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpPost]
-    [Authorize]
     [Route("begin")]
     public IActionResult Begin([FromBody] BatchlogBeginRequest? request) {
         try {
@@ -124,7 +119,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpPost]
-    [Authorize]
     [Route("{uuid}/complete")]
     public IActionResult Complete(string uuid, [FromQuery] string? userName) {
         try {
@@ -150,7 +144,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpPost]
-    [Authorize]
     [Route("{uuid}/abort")]
     public IActionResult Abort(string uuid, [FromQuery] string? userName) {
         try {
@@ -175,7 +168,6 @@ public class BatchlogController(ILogger<BatchlogController> logger, IOptionsSnap
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
     [HttpPost]
-    [Authorize]
     [Route("log")]
     public IActionResult AddLog([FromBody] BatchlogAddRequest? detail) {
         try {
