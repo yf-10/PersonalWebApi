@@ -12,6 +12,7 @@ public class Salary(
     string month,
     bool deduction,
     string paymentItem,
+    bool bonus,
     Money money,
     string createdBy = "unknown",
     string updatedBy = "unknown",
@@ -25,6 +26,8 @@ public class Salary(
     public bool Deduction { get; private set; } = deduction;
     [DataMember]
     public string PaymentItem { get; private set; } = paymentItem;
+    [DataMember]
+    public bool Bonus { get; private set; } = bonus;
     [DataMember]
     public Money Money { get; private set; } = money;
     [DataMember]

@@ -14,6 +14,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         month,
         deduction,
         payment_item,
+        bonus,
         amount,
         currency_code,
         created_by,
@@ -38,7 +39,8 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         ORDER BY
             month desc,
             deduction asc,
-            payment_item asc
+            payment_item asc,
+            bonus desc
         """;
 
     /// --------------------------------------------------------------------------------
@@ -57,6 +59,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             month = @month
             AND deduction = @deduction
             AND payment_item = @payment_item
+            AND bonus = @bonus
         """;
 
     /// --------------------------------------------------------------------------------
@@ -89,6 +92,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             month,
             deduction,
             payment_item,
+            bonus,
             amount,
             currency_code,
             created_by,
@@ -102,6 +106,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             @month,
             @deduction,
             @payment_item,
+            @bonus,
             @amount,
             @currency_code,
             @created_by,
@@ -132,6 +137,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             month = @month
             AND deduction = @deduction
             AND payment_item = @payment_item
+            AND bonus = @bonus
         """;
 
     /// --------------------------------------------------------------------------------
@@ -148,6 +154,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             month,
             deduction,
             payment_item,
+            bonus,
             amount,
             currency_code,
             created_by,
@@ -161,6 +168,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             @month,
             @deduction,
             @payment_item,
+            @bonus,
             @amount,
             @currency_code,
             @created_by,
@@ -169,7 +177,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             NOW(),
             0
         )
-        ON CONFLICT (month, deduction, payment_item) DO UPDATE SET
+        ON CONFLICT (month, deduction, payment_item, bonus) DO UPDATE SET
             amount = EXCLUDED.amount,
             currency_code = EXCLUDED.currency_code,
             updated_by = EXCLUDED.updated_by,
@@ -189,6 +197,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             new("@month", entity.Month),
             new("@deduction", entity.Deduction),
             new("@payment_item", entity.PaymentItem),
+            new("@bonus", entity.Bonus),
             new("@amount", entity.Money.Amount),
             new("@currency_code", entity.Money.CurrencyCode),
             new("@created_by", entity.CreatedBy),

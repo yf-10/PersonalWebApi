@@ -65,7 +65,12 @@ public class GmailApiService(ILogger logger, IOptions<AppSettings> options) : Ba
             var messageRequest = service.Users.Messages.Get("me", msg.Id);
             var message = await messageRequest.ExecuteAsync();
             string body = GetBodyFromMessage(message);
-            var salaries = SalaryMailParser.Parse(body, _options.Value.ApplicationName, _options.Value.ApplicationName);
+
+            // 件名を取得
+            string subject = message.Payload?.Headers?.FirstOrDefault(h => h.Name == "Subject")?.Value ?? string.Empty;
+
+            // 件名をParseに渡す
+            var salaries = SalaryMailParser.Parse(body, subject, _options.Value.ApplicationName, _options.Value.ApplicationName);
             if (salaries != null && salaries.Count > 0)
                 allSalaries.AddRange(salaries);
         }

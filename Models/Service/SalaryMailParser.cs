@@ -19,8 +19,11 @@ public static partial class SalaryMailParser {
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
     /// --------------------------------------------------------------------------------
-    public static List<Salary> Parse(string mailBody, string createdBy = "unknown", string updatedBy = "unknown") {
+    public static List<Salary> Parse(string mailBody, string subject, string createdBy = "unknown", string updatedBy = "unknown") {
         var result = new List<Salary>();
+
+        // 件名から賞与かどうか判定
+        bool isBonus = subject.Contains("賞与支給明細");
 
         // [ 振込日 ] から年月を抽出し"YYYYMM"形式に変換
         var dateMatch = PaymentDateRegx().Match(mailBody);
@@ -41,6 +44,7 @@ public static partial class SalaryMailParser {
                 month: month,
                 deduction: false,
                 paymentItem: item,
+                bonus: isBonus,
                 money: new Money(amount, "JPY"),
                 createdBy: createdBy,
                 updatedBy: updatedBy
@@ -55,6 +59,7 @@ public static partial class SalaryMailParser {
                 month: month,
                 deduction: true,
                 paymentItem: item,
+                bonus: isBonus,
                 money: new Money(amount, "JPY"),
                 createdBy: createdBy,
                 updatedBy: updatedBy
