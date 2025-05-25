@@ -54,19 +54,12 @@ builder.Services.AddHttpClient();
 // アプリケーションインスタンスをビルド
 var app = builder.Build();
 
-// リッスンするURLを設定
-app.Urls.Add("https://localhost:5001");
-app.Urls.Add("http://localhost:5000");
-
 // CORSを有効化
 app.UseCors("AllowAll");
 
-// HTTPリクエストパイプラインの構成
-if (app.Environment.IsDevelopment()) {
-    // 開発環境のみSwagger UIを有効化
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Swaggerミドルウェアを有効化（APIドキュメント・テスト用）
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // HTTPSリダイレクトミドルウェアを有効化
 app.UseHttpsRedirection();
