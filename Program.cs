@@ -48,6 +48,9 @@ builder.Services
     .AddAuthentication("ApiKey")
     .AddScheme<AuthenticationSchemeOptions, PersonalWebApi.Utilities.ApiKeyAuthenticationHandler>("ApiKey", null);
 
+// HTTPクライアントをDIコンテナに追加
+builder.Services.AddHttpClient();
+
 // アプリケーションインスタンスをビルド
 var app = builder.Build();
 
