@@ -34,18 +34,20 @@ public abstract class BaseController(ILogger logger, IOptionsSnapshot<AppSetting
     private const string StopwatchKey = "_BaseAuthenticatedController_Stopwatch";
 
     /// <summary>
-    /// 処理時間ログ用のカスタムファイルロガー
+    /// 処理時間ログ用のカスタムファイルロガー <br/>
+    /// static readonly にすることでアプリケーション全体で共有
     /// </summary>
-    protected readonly Utilities.CustomFileLogger _responseLogger = new(
-        filePath: options.Value.CustomFileLogger.ResponseLogger.FilePath,
+    protected static readonly Utilities.CustomFileLogger _responseLogger = new(
+        filePath: "./logs/response.log",
         logLevel: Utilities.CustomFileLogger.LogLevel.INFO,
-        maxFileSizeKB: options.Value.CustomFileLogger.ResponseLogger.MaxFileSizeKB
+        maxFileSizeKB: 1024 // 1MB
     );
 
     /// <summary>
-    /// テスト用のカスタムファイルロガー
+    /// テスト用のカスタムファイルロガー <br/>
+    /// static readonly にすることでアプリケーション全体で共有
     /// </summary>
-    protected readonly Utilities.CustomFileLogger _testLogger = new(
+    protected static readonly Utilities.CustomFileLogger _testLogger = new(
         filePath: "./logs/test.log",
         logLevel: Utilities.CustomFileLogger.LogLevel.DEBUG,
         maxFileSizeKB: 1024 // 1MB
