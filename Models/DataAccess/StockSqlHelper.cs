@@ -7,20 +7,18 @@ namespace PersonalWebApi.Models.DataAccess;
 /// SQL文およびパラメータ生成ヘルパークラス
 /// </summary>
 /// --------------------------------------------------------------------------------
-public class SalarySqlHelper : ISqlHelper<Salary> {
-    private const string TableName = "salary";
+public class StockSqlHelper : ISqlHelper<Stock> {
+    private const string TableName = "stock";
     private const string SelectColumns =
     """
-        month,
-        deduction,
-        payment_item,
-        amount,
-        currency_code,
-        created_by,
-        updated_by,
+        code,
+        name,
+        quantity,
+        purchase_price,
+        purchase_date,
+        memo,
         created_at,
-        updated_at,
-        exclusive_flag
+        updated_at
     """;
 
     /// --------------------------------------------------------------------------------
@@ -36,9 +34,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         FROM
             {TableName}
         ORDER BY
-            month desc,
-            deduction asc,
-            payment_item asc
+            code
         """;
 
     /// --------------------------------------------------------------------------------
@@ -54,25 +50,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         FROM
             {TableName}
         WHERE
-            month = @month
-            AND deduction = @deduction
-            AND payment_item = @payment_item
-        """;
-
-    /// --------------------------------------------------------------------------------
-    /// <summary>
-    /// [SELECT] 期間指定で取得（YYYYMM～YYYYMM）
-    /// </summary>
-    /// <returns>SQL</returns>
-    /// --------------------------------------------------------------------------------
-    public string GetSelectByMonthBetweenSql() =>
-        $"""
-        SELECT
-        {SelectColumns}
-        FROM
-            {TableName}
-        WHERE
-            month BETWEEN @start_month AND @end_month
+            code = @code
         """;
 
     /// --------------------------------------------------------------------------------
@@ -86,52 +64,26 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         INSERT INTO
             {TableName}
         (
-            month,
-            deduction,
-            payment_item,
-            amount,
-            currency_code,
-            created_by,
-            updated_by,
+            code,
+            name,
+            quantity,
+            purchase_price,
+            purchase_date,
+            memo,
             created_at,
-            updated_at,
-            exclusive_flag
+            updated_at
         )
         VALUES
         (
-            @month,
-            @deduction,
-            @payment_item,
-            @amount,
-            @currency_code,
-            @created_by,
-            @updated_by,
+            @code,
+            @name,
+            @quantity,
+            @purchase_price,
+            @purchase_date,
+            @memo,
             NOW(),
-            NOW(),
-            0
+            NOW()
         )
-        """;
-
-    /// --------------------------------------------------------------------------------
-    /// <summary>
-    /// [UPDATE] 既存レコード更新
-    /// </summary>
-    /// <returns>SQL</returns>
-    /// --------------------------------------------------------------------------------
-    public string GetUpdateSql() =>
-        $"""
-        UPDATE
-            {TableName}
-        SET
-            amount = @amount,
-            currency_code = @currency_code,
-            updated_by = @updated_by,
-            updated_at = NOW(),
-            exclusive_flag = exclusive_flag + 1
-        WHERE
-            month = @month
-            AND deduction = @deduction
-            AND payment_item = @payment_item
         """;
 
     /// --------------------------------------------------------------------------------
@@ -145,36 +97,68 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         INSERT INTO
             {TableName}
         (
-            month,
-            deduction,
-            payment_item,
-            amount,
-            currency_code,
-            created_by,
-            updated_by,
+            code,
+            name,
+            quantity,
+            purchase_price,
+            purchase_date,
+            memo,
             created_at,
-            updated_at,
-            exclusive_flag
+            updated_at
         )
         VALUES
         (
-            @month,
-            @deduction,
-            @payment_item,
-            @amount,
-            @currency_code,
-            @created_by,
-            @updated_by,
+            @code,
+            @name,
+            @quantity,
+            @purchase_price,
+            @purchase_date,
+            @memo,
             NOW(),
-            NOW(),
-            0
+            NOW()
         )
-        ON CONFLICT (month, deduction, payment_item) DO UPDATE SET
-            amount = EXCLUDED.amount,
-            currency_code = EXCLUDED.currency_code,
-            updated_by = EXCLUDED.updated_by,
-            updated_at = NOW(),
-            exclusive_flag = {TableName}.exclusive_flag + 1
+        ON CONFLICT (code) DO UPDATE SET
+            name = EXCLUDED.name,
+            quantity = EXCLUDED.quantity,
+            purchase_price = EXCLUDED.purchase_price,
+            purchase_date = EXCLUDED.purchase_date,
+            memo = EXCLUDED.memo,
+            updated_at = NOW()
+        """;
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [UPDATE] 既存レコード更新
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    public string GetUpdateSql() =>
+        $"""
+        UPDATE
+            {TableName}
+        SET
+            name = @name,
+            quantity = @quantity,
+            purchase_price = @purchase_price,
+            purchase_date = @purchase_date,
+            memo = @memo,
+            updated_at = NOW()
+        WHERE
+            code = @code
+        """;
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [DELETE] 主キー指定で削除
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    public string GetDeleteSql() =>
+        $"""
+        DELETE FROM
+            {TableName}
+        WHERE
+            code = @code
         """;
 
     /// --------------------------------------------------------------------------------
@@ -184,15 +168,14 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
     /// <param name="entity">BatchlogDetailエンティティ</param>
     /// <returns>パラメータコレクション</returns>
     /// --------------------------------------------------------------------------------
-    public QueryParameterCollection ToParameterCollection(Salary entity) {
+    public QueryParameterCollection ToParameterCollection(Stock entity) {
         return [
-            new("@month", entity.Month),
-            new("@deduction", entity.Deduction),
-            new("@payment_item", entity.PaymentItem),
-            new("@amount", entity.Money.Amount),
-            new("@currency_code", entity.Money.CurrencyCode),
-            new("@created_by", entity.CreatedBy),
-            new("@updated_by", entity.UpdatedBy)
+            new("@code", entity.Code),
+            new("@name", entity.Name),
+            new("@quantity", entity.Quantity),
+            new("@purchase_price", entity.PurchasePrice),
+            new("@purchase_date", entity.PurchaseDate),
+            new("@memo", entity.Memo)
         ];
     }
 
