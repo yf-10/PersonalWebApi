@@ -3,20 +3,19 @@ using Microsoft.AspNetCore.Authentication;
 // アプリケーションビルダーのインスタンスを作成
 var builder = WebApplication.CreateBuilder(args);
 
-// 環境ごとにカスタムファイルロガープロバイダーを登録
-if (builder.Environment.IsDevelopment()) {
-    // 開発環境：デバッグ用ログファイル
+// AppSettingsのバインド
+builder.Services.Configure<PersonalWebApi.Models.Config.AppSettings>(builder.Configuration);
+
+// FileOutput設定を取得
+var fileOutputSection = builder.Configuration.GetSection("Logging:FileOutput");
+var fileOutput = fileOutputSection.Get<PersonalWebApi.Models.Config.FileOutput>() ?? new();
+
+// FileLoggerProviderを設定
+if (fileOutput.Enabled) {
     builder.Logging.AddProvider(new PersonalWebApi.Utilities.FileLoggerProvider(
-        "logs/dev.log",         // 開発用ログファイルパス
-        LogLevel.Debug,         // 最小ログレベル：Debug
-        10 * 1024 * 1024        // 最大ファイルサイズ：10MB
-    ));
-} else {
-    // 本番環境：本番用ログファイル
-    builder.Logging.AddProvider(new PersonalWebApi.Utilities.FileLoggerProvider(
-        "logs/prd.log",         // 本番用ログファイルパス
-        LogLevel.Information,   // 最小ログレベル：Information
-        10 * 1024 * 1024        // 最大ファイルサイズ：10MB
+        fileOutput.FilePath,
+        Enum.TryParse<LogLevel>(builder.Configuration["Logging:LogLevel:Default"], out var level) ? level : LogLevel.Information,
+        fileOutput.MaxFileSizeKB * 1024 // KB → Bytes
     ));
 }
 
@@ -40,14 +39,9 @@ builder.Services
             policy
                 .AllowAnyOrigin()
                 .AllowAnyHeader()
-                .AllowAnyMethod()
-            ;
+                .AllowAnyMethod();
+        });
     });
-});
-
-// アプリケーション設定 "appsettings.json" をPOCOクラスにバインド
-builder.Services
-    .Configure<PersonalWebApi.Models.Config.AppSettings>(builder.Configuration);
 
 // カスタムAPIキー認証サービスをDIコンテナに追加
 builder.Services

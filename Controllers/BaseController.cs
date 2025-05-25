@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -15,7 +16,6 @@ namespace PersonalWebApi.Controllers;
 /// <param name="logger">標準ロガー</param>
 /// <param name="options">アプリケーション設定オプション</param>
 /// --------------------------------------------------------------------------------
-[Authorize(AuthenticationSchemes = "ApiKey")]
 public abstract class BaseController(ILogger logger, IOptionsSnapshot<AppSettings> options) : ControllerBase, IActionFilter {
 
     /// <summary>
@@ -33,6 +33,24 @@ public abstract class BaseController(ILogger logger, IOptionsSnapshot<AppSetting
     /// </summary>
     private const string StopwatchKey = "_BaseAuthenticatedController_Stopwatch";
 
+    /// <summary>
+    /// 処理時間ログ用のカスタムファイルロガー
+    /// </summary>
+    protected readonly Utilities.CustomFileLogger _responseLogger = new(
+        filePath: options.Value.CustomFileLogger.ResponseLogger.FilePath,
+        logLevel: Utilities.CustomFileLogger.LogLevel.INFO,
+        maxFileSizeKB: options.Value.CustomFileLogger.ResponseLogger.MaxFileSizeKB
+    );
+
+    /// <summary>
+    /// テスト用のカスタムファイルロガー
+    /// </summary>
+    protected readonly Utilities.CustomFileLogger _testLogger = new(
+        filePath: "./logs/test.log",
+        logLevel: Utilities.CustomFileLogger.LogLevel.DEBUG,
+        maxFileSizeKB: 1024 // 1MB
+    );
+
     /// --------------------------------------------------------------------------------
     /// <summary>
     /// アクション実行前に呼ばれるフィルタ <br/>
@@ -42,6 +60,7 @@ public abstract class BaseController(ILogger logger, IOptionsSnapshot<AppSetting
     /// </summary>
     /// <param name="context"></param>
     /// --------------------------------------------------------------------------------
+    [Authorize(AuthenticationSchemes = "ApiKey")]
     [ApiExplorerSettings(IgnoreApi = true)]
     public void OnActionExecuting(ActionExecutingContext context) {
         _logger.LogInformation("Action {ActionName} executing...", context.ActionDescriptor.DisplayName);
@@ -70,7 +89,18 @@ public abstract class BaseController(ILogger logger, IOptionsSnapshot<AppSetting
         if (context.HttpContext.Items[StopwatchKey] is Stopwatch sw) {
             sw.Stop();
             var msec = sw.ElapsedMilliseconds;
-            _logger.LogInformation("Action executed: {ElapsedMilliseconds} ms", msec);
+            var logObject = new {
+                Timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+                Path = context.HttpContext.Request.Path,
+                Method = context.HttpContext.Request.Method,
+                Action = context.ActionDescriptor.DisplayName,
+                StatusCode = context.HttpContext.Response.StatusCode,
+                ElapsedMilliseconds = msec,
+                RemoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = context.HttpContext.Request.Headers.UserAgent.ToString()
+            };
+            string json = JsonSerializer.Serialize(logObject);
+            _responseLogger.WriteLine(json);
         }
     }
 

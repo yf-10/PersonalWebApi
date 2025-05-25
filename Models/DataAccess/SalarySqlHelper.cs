@@ -9,7 +9,8 @@ namespace PersonalWebApi.Models.DataAccess;
 /// --------------------------------------------------------------------------------
 public class SalarySqlHelper : ISqlHelper<Salary> {
     private const string TableName = "salary";
-    private const string SelectColumns = """
+    private const string SelectColumns =
+    """
         month,
         deduction,
         payment_item,
@@ -20,7 +21,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
         created_at,
         updated_at,
         exclusive_flag
-        """;
+    """;
 
     /// --------------------------------------------------------------------------------
     /// <summary>
@@ -31,7 +32,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
     public string GetSelectSql() =>
         $"""
         SELECT
-            {SelectColumns}
+        {SelectColumns}
         FROM
             {TableName}
         ORDER BY
@@ -49,7 +50,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
     public string GetSelectByIdSql() =>
         $"""
         SELECT
-            {SelectColumns}
+        {SelectColumns}
         FROM
             {TableName}
         WHERE
@@ -67,7 +68,7 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
     public string GetSelectByMonthBetweenSql() =>
         $"""
         SELECT
-            {SelectColumns}
+        {SelectColumns}
         FROM
             {TableName}
         WHERE

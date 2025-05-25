@@ -9,7 +9,8 @@ namespace PersonalWebApi.Models.DataAccess;
 /// --------------------------------------------------------------------------------
 public class BatchlogMainSqlHelper : ISqlHelper<BatchlogMain> {
     private const string TableName = "batchlog_main";
-    private const string SelectColumns = """
+    private const string SelectColumns =
+    """
         uuid,
         status,
         program_id,
@@ -20,7 +21,7 @@ public class BatchlogMainSqlHelper : ISqlHelper<BatchlogMain> {
         updated_by,
         created_at,
         updated_at
-        """;
+    """;
 
     /// --------------------------------------------------------------------------------
     /// <summary>
@@ -31,7 +32,7 @@ public class BatchlogMainSqlHelper : ISqlHelper<BatchlogMain> {
     public string GetSelectSql() =>
         $"""
         SELECT
-            {SelectColumns}
+        {SelectColumns}
         FROM
             {TableName}
         ORDER BY
@@ -47,7 +48,7 @@ public class BatchlogMainSqlHelper : ISqlHelper<BatchlogMain> {
     public string GetSelectByIdSql() =>
         $"""
         SELECT
-            {SelectColumns}
+        {SelectColumns}
         FROM
             {TableName}
         WHERE

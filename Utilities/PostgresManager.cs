@@ -13,7 +13,7 @@ namespace PersonalWebApi.Utilities;
 /// --------------------------------------------------------------------------------
 public class PostgresManager(ILogger logger, IOptions<AppSettings> options) : IDbWorker {
     private readonly ILogger _logger = logger;
-    private readonly string _connectionString = options.Value.ConnectionStrings.Postgres ?? throw new InvalidOperationException("Connection string is not configured.");
+    private readonly string _connectionString = options.Value.Database.PostgresConStr ?? throw new InvalidOperationException("Connection string is not configured.");
 
     /// --------------------------------------------------------------------------------
     /// <summary>

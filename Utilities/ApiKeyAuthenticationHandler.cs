@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using Google.Protobuf.WellKnownTypes;
+
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -20,8 +20,8 @@ public class ApiKeyAuthenticationHandler(
 ) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder) {
     private readonly IOptionsSnapshot<AppSettings> _appSettings = appSettings;
     private readonly ILogger<ApiKeyAuthenticationHandler> _logger = logger.CreateLogger<ApiKeyAuthenticationHandler>();
-    private readonly string ApiKeyHeaderName = appSettings.Value.Api.ApiKeyHeaderName;
-    private readonly string ApiKey = appSettings.Value.Api.ApiKey;
+    private readonly string ApiKeyHeaderName = appSettings.Value.ApiSettings.ApiKeyHeaderName;
+    private readonly string ApiKey = appSettings.Value.ApiSettings.ApiKey;
 
     /// --------------------------------------------------------------------------------
     /// <summary>
@@ -30,7 +30,6 @@ public class ApiKeyAuthenticationHandler(
     /// <returns>認証結果</returns>
     /// --------------------------------------------------------------------------------
     protected override Task<AuthenticateResult> HandleAuthenticateAsync() {
-        _logger.LogInformation("Handling API Key authentication...");
         // テストモードの場合はAPIキー認証をスキップ
         if (_appSettings.Value.IsTest) {
             _logger.LogWarning("API Key authentication is disabled in test mode.");
