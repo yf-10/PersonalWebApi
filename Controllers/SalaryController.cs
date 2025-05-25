@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
+
 using PersonalWebApi.Models.Config;
 using PersonalWebApi.Models.Data;
 using PersonalWebApi.Models.Service;
@@ -47,17 +47,17 @@ public class SalaryController(ILogger<BatchlogController> logger, IOptionsSnapsh
     /// --------------------------------------------------------------------------------
     /// <summary>
     /// 給与情報の登録 <br/>
-    /// [POST] /api/salaries/add <br/>
+    /// [POST] /api/salaries/upload <br/>
     /// </summary>
     /// <param name="salaries"></param>
     /// <returns></returns>
     /// --------------------------------------------------------------------------------
-    [Route("add")]
+    [Route("upload")]
     [HttpPost]
-    public IActionResult Add([FromBody] List<Salary> salaries) {
+    public IActionResult Upload([FromBody] List<Salary> salaries) {
         try {
             var salaryService = new SalaryService(_logger, _options);
-            int count = salaryService.Insert(salaries);
+            int count = salaryService.InsertOrUpdateAll(salaries);
             return Ok(new ApiResponse<int>(ApiResponseStatus.Success, $"{count} salaries registered.", count));
         } catch (Exception ex) {
             _logger.LogError(ex, "An error occurred while registering salaries.");

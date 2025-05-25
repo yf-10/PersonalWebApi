@@ -62,3 +62,4 @@ yarn-error.log
 secrets.json
 appsettings.Development.json
 appsettings.Local.json
+GmailApiTokenStore/

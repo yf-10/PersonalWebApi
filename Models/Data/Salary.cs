@@ -13,8 +13,8 @@ public class Salary(
     bool deduction,
     string paymentItem,
     Money money,
-    string createdBy = "system",
-    string updatedBy = "system",
+    string createdBy = "unknown",
+    string updatedBy = "unknown",
     DateTime? createdAt = null,
     DateTime? updatedAt = null,
     int exclusiveFlag = 0

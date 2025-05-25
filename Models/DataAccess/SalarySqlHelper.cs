@@ -4,7 +4,7 @@ using PersonalWebApi.Utilities;
 namespace PersonalWebApi.Models.DataAccess;
 /// --------------------------------------------------------------------------------
 /// <summary>
-/// SQL文およびパラメータ生成ヘルパークラス
+/// SQL文およびパラメータ生成ヘルパラス
 /// </summary>
 /// --------------------------------------------------------------------------------
 public class SalarySqlHelper : ISqlHelper<Salary> {
@@ -132,6 +132,49 @@ public class SalarySqlHelper : ISqlHelper<Salary> {
             month = @month
             AND deduction = @deduction
             AND payment_item = @payment_item
+        """;
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [INSERT or UPDATE] 主キー重複時は更新、なければ登録 for PostgreSQL
+    /// </summary>
+    /// <returns>SQL</returns>
+    /// --------------------------------------------------------------------------------
+    public string GetInsertOrUpdateSql() =>
+        $"""
+        INSERT INTO
+            {TableName}
+        (
+            month,
+            deduction,
+            payment_item,
+            amount,
+            currency_code,
+            created_by,
+            updated_by,
+            created_at,
+            updated_at,
+            exclusive_flag
+        )
+        VALUES
+        (
+            @month,
+            @deduction,
+            @payment_item,
+            @amount,
+            @currency_code,
+            @created_by,
+            @updated_by,
+            NOW(),
+            NOW(),
+            0
+        )
+        ON CONFLICT (month, deduction, payment_item) DO UPDATE SET
+            amount = EXCLUDED.amount,
+            currency_code = EXCLUDED.currency_code,
+            updated_by = EXCLUDED.updated_by,
+            updated_at = NOW(),
+            exclusive_flag = {TableName}.exclusive_flag + 1
         """;
 
     /// --------------------------------------------------------------------------------

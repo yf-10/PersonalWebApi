@@ -7,9 +7,12 @@ namespace PersonalWebApi.Models.Config;
 public class AppSettings {
     public Logging Logging { get; set; } = new();
     public bool IsTest { get; set; } = true;
+    public string ApplicationName { get; set; } = "PersonalWebApi";
+    public string Version { get; set; } = "1.0.0";
     public CustomFileLogger CustomFileLogger { get; set; } = new();
     public ApiSettings ApiSettings { get; set; } = new();
     public Database Database { get; set; } = new();
+    public GmailApi GmailApi { get; set; } = new();
 }
 /// <summary>
 /// 標準ロガー設定
@@ -58,4 +61,13 @@ public class ApiSettings {
 /// </summary>
 public class Database {
     public string PostgresConStr { get; set; } = "";
+}
+/// <summary>
+/// Gmail API設定
+/// </summary>
+public class GmailApi {
+    public string ClientId { get; set; } = "";
+    public string ClientSecret { get; set; } = "";
+    public string TargetLabelName { get; set; } = "INBOX"; // 取得対象のラベル名
+    public int MaxResults { get; set; } = 10; // 取得するメールの最大件数
 }

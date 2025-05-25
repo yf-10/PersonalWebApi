@@ -55,16 +55,16 @@ public class SalaryService(ILogger logger, IOptions<AppSettings> options) : Base
 
     /// --------------------------------------------------------------------------------
     /// <summary>
-    /// 給与データ登録
+    /// 給与データ登録（主キー重複時は更新、なければ登録）
     /// </summary>
     /// <param name="salaries"></param>
-    /// <returns>登録件数</returns>
+    /// <returns>登録・更新件数</returns>
     /// --------------------------------------------------------------------------------
-    public int Insert(List<Salary> salaries) {
+    public int InsertOrUpdateAll(List<Salary> salaries) {
         using var scope = new TransactionScope(TransactionScopeOption.Required, TransactionScopeAsyncFlowOption.Enabled);
         var manager = new PostgresManager(_logger, _options);
         var repository = new SalaryRepository(manager);
-        int count = repository.InsertAll(salaries);
+        int count = repository.InsertOrUpdateAll(salaries);
         scope.Complete();
         return count;
     }

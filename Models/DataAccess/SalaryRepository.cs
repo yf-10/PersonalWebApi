@@ -111,4 +111,34 @@ public class SalaryRepository(PostgresManager manager) : BaseRepository<Salary>(
         return count;
     }
 
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [INSERT or UPDATE] 主キーが重複していれば更新、なければ登録（PostgreSQL用）
+    /// </summary>
+    /// <param name="entities"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public int InsertOrUpdateAll(IEnumerable<Salary> entities) {
+        int count = 0;
+        foreach (var entity in entities) {
+            count += _manager.ExecuteSql(_helper.GetInsertOrUpdateSql(), _helper.ToParameterCollection(entity));
+        }
+        return count;
+    }
+
+    /// --------------------------------------------------------------------------------
+    /// <summary>
+    /// [INSERT or UPDATE] 主キーが重複していれば更新、なければ登録（非同期・PostgreSQL用）
+    /// </summary>
+    /// <param name="entities"></param>
+    /// <returns>影響を受けた行数</returns>
+    /// --------------------------------------------------------------------------------
+    public async Task<int> InsertOrUpdateAllAsync(IEnumerable<Salary> entities) {
+        int count = 0;
+        foreach (var entity in entities) {
+            count += await _manager.ExecuteSqlAsync(_helper.GetInsertOrUpdateSql(), _helper.ToParameterCollection(entity));
+        }
+        return count;
+    }
+
 }

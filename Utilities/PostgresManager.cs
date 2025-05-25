@@ -62,7 +62,7 @@ public class PostgresManager(ILogger logger, IOptions<AppSettings> options) : ID
             conn.Open();
             using var command = new NpgsqlCommand(sql, conn);
             AddParameters(command, prms);
-            _logger.LogInformation("Executing SQL:\n{Sql}\nParams: {Params}", sql, FormatParameters(prms));
+            _logger.LogDebug("Executing SQL:\n{Sql}\nParams: {Params}", sql, FormatParameters(prms));
             return executor(command);
         } catch (Exception ex) {
             _logger.LogError(ex, "Exception occured while executing SQL:\n{Sql}\nParams: {Params}", sql, FormatParameters(prms));
